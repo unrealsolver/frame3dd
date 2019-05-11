@@ -1,3 +1,6 @@
+* Sat May 11 08:10:00 EST 2019 Henri Gavin <hpgavin> 0.20140514+
+- NRutil.c - fix memory leaks in free_D3matrix and free_D3dmatrix
+
 * Sat Jun 30 14:06:00 EST 2018 Henri Gavin <hpgavin> 0.20140514+
 - fix typo in Frame3DD-manual.html ...  EMs to NMs ... etc
 
