@@ -50,6 +50,7 @@ For compilation/installation, see README.txt.
 #include "frame3dd.h"
 #include "frame3dd_io.h"
 #include "eig.h"
+#include "gnuplot_writer.h"
 #include "HPGmatrix.h"
 #include "HPGutil.h"
 #include "NRutil.h"
