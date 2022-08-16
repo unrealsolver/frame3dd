@@ -60,6 +60,6 @@ env.Install(bindir,frame3dd);
 
 env['installdirs'] += [bindir]
 
-print "CCFLAGS =",env['CCFLAGS']
+print("CCFLAGS =",env['CCFLAGS'])
 
 # vim: set syntax=python

@@ -1,7 +1,7 @@
 Import('env')
 
 if env.get('HAVE_CPPUNIT'):
-	print "HAVE CPPUNIT"
+	print("HAVE CPPUNIT")
 
 	test_env = env.Clone()
 	test_env.Append(

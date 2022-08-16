@@ -1,4 +1,4 @@
-#!/usr/bin/python SCons
+#!/bin/env python3
 """	FRAME: Static and dynamic structural analysis of 2D & 3D frames and trusses
 	Copyright (C) 1992-2007  Henri P. Gavin
 
@@ -19,6 +19,7 @@
 version = '0.20130318'
 
 import platform
+
 deftools = ['default']
 if platform.system()=="Windows":
 	deftools = ['mingw']
@@ -87,7 +88,7 @@ env['CCFLAGS']=['-O', '-Wall']
 env['VERSION'] = version
 
 if env.get('DEBUG'):
-	print "DEBUGGING TURNED ON"
+	print("DEBUGGING TURNED ON")
 	env.Append(CCFLAGS=['-g'])
 
 #====================
@@ -130,7 +131,7 @@ int main(void){
 
 def CheckGccVisibility(context):
 	context.Message("Checking for GCC 'visibility' capability... ")
-	if not context.env.has_key('WITH_GCCVISIBILITY') or not env['WITH_GCCVISIBILITY']:
+	if 'WITH_GCCVISIBILITY' not in context.env or not env['WITH_GCCVISIBILITY']:
 		context.Result("disabled")
 		return 0
 	is_ok = context.TryCompile(gccvisibility_test_text,".c")
@@ -221,8 +222,8 @@ env['HAVE_SOQT'] = conf.CheckSoQt()
 # documentation
 
 env.Append(SUBST_DICT= {
-	'@VERSION@':version
-	,'@CHANGELOG@':file("ChangeLog.txt").read()
+	'@VERSION@':version,
+        '@CHANGELOG@': open("ChangeLog.txt").read()
 })
 
 env.SConscript('doc/SConscript',['env'])
@@ -233,13 +234,13 @@ env.SConscript('doc/SConscript',['env'])
 env['installdirs'] = []
 env['PROGS'] = []
 
-env.BuildDir('build','src')
+env.VariantDir('build','src')
 env.SConscript('build/SConscript',['env'])
 
 #------------
 # test suite
 
-env.BuildDir('build/test','test')
+env.VariantDir('build/test','test')
 env.SConscript('build/test/SConscript',['env'])
 
 #------------

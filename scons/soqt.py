@@ -7,23 +7,23 @@ def generate(env):
 	"""
 	try:
 		if platform.system()=="Windows":
-			import _winreg
-			x=_winreg.ConnectRegistry(None,_winreg.HKEY_LOCAL_MACHINE)
-			y= _winreg.OpenKey(x,r"SOFTWARE\soqt")
-			LIB,t = _winreg.QueryValueEx(y,"INSTALL_LIB")
-			BIN,t = _winreg.QueryValueEx(y,"INSTALL_BIN")
-			INCLUDE,t = _winreg.QueryValueEx(y,"INSTALL_INCLUDE")
+			import winreg
+			x=winreg.ConnectRegistry(None,winreg.HKEY_LOCAL_MACHINE)
+			y= winreg.OpenKey(x,r"SOFTWARE\soqt")
+			LIB,t = winreg.QueryValueEx(y,"INSTALL_LIB")
+			BIN,t = winreg.QueryValueEx(y,"INSTALL_BIN")
+			INCLUDE,t = winreg.QueryValueEx(y,"INSTALL_INCLUDE")
 
 			env['SOQT_CPPPATH'] = [INCLUDE]
 			env['SOQT_LIBPATH'] = [LIB]
 			env['SOQT_LIBS'] = ['SoQt']
 			env['SOQT_CPPDEFINES'] = ['SOQT_DLL']
 			
-			x=_winreg.ConnectRegistry(None,_winreg.HKEY_LOCAL_MACHINE)
-			y= _winreg.OpenKey(x,r"SOFTWARE\coin3d")
-			LIB,t = _winreg.QueryValueEx(y,"INSTALL_LIB")
-			BIN,t = _winreg.QueryValueEx(y,"INSTALL_BIN")
-			INCLUDE,t = _winreg.QueryValueEx(y,"INSTALL_INCLUDE")
+			x=winreg.ConnectRegistry(None,winreg.HKEY_LOCAL_MACHINE)
+			y= winreg.OpenKey(x,r"SOFTWARE\coin3d")
+			LIB,t = winreg.QueryValueEx(y,"INSTALL_LIB")
+			BIN,t = winreg.QueryValueEx(y,"INSTALL_BIN")
+			INCLUDE,t = winreg.QueryValueEx(y,"INSTALL_INCLUDE")
 			
 			env.AppendUnique(
 				SOQT_CPPPATH = [INCLUDE]
@@ -47,14 +47,13 @@ def generate(env):
 			env['SOQT_LIBS'] = env1.get('LIBS')
 			env['SOQT_CPPDEFINES'] = env1.get('CPPDEFINES')
 
-		print "SOQT_LIBS =",env.get('SOQT_LIBS')
-		print "SOQT_LIBPATH =",env.get('SOQT_LIBPATH')
-		print "SOQT_CPPPATH =",env.get('SOQT_CPPPATH')
-		print "SOQT_CPPDEFINES =",env.get('SOQT_CPPDEFINES')
+		print("SOQT_LIBS =",env.get('SOQT_LIBS'))
+		print("SOQT_LIBPATH =",env.get('SOQT_LIBPATH'))
+		print("SOQT_CPPPATH =",env.get('SOQT_CPPPATH'))
+		print("SOQT_CPPDEFINES =",env.get('SOQT_CPPDEFINES'))
 
 	except:
-		print "FAILED TO SET UP SOQT"
-		pass
+		print("FAILED TO SET UP SOQT")
 
 def exists(env):
 	"""
@@ -62,10 +61,10 @@ def exists(env):
 	"""
 	if platform.system()=="Windows":
 		try:
-			import _winreg
-			x=_winreg.ConnectRegistry(None,_winreg.HKEY_LOCAL_MACHINE)
-			y= _winreg.OpenKey(x,r"SOFTWARE\soqt")
-			INCLUDE,t = _winreg.QueryValueEx(y,'INSTALL_INCLUDE')
+			import winreg
+			x=winreg.ConnectRegistry(None,winreg.HKEY_LOCAL_MACHINE)
+			y= winreg.OpenKey(x,r"SOFTWARE\soqt")
+			INCLUDE,t = winreg.QueryValueEx(y,'INSTALL_INCLUDE')
 			return True
 		except:
 			return False
