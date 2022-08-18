@@ -1,5 +1,4 @@
-FRAME3DD: a frame analysis program
--------------------------------
+# FRAME3DD: a frame analysis program
 
 FRAME3DD is a program for the static and dynamic structural analysis of
 two- and three-dimensional frames and trusses with elastic and 
@@ -20,14 +19,14 @@ For usage information, see the User Manual, included with both the source
 code and binary installer packages.
 
 Additional output files from FRAME3DD are directed by default to the temporary
-file folder (according to the %TEMP% env var on Windows, or /tmp on other
+file folder (according to the `%TEMP%` env var on Windows, or `/tmp` on other
 platforms). You can specify an alternative location for output files by setting
-the environment variable FRAME3DD_OUTDIR.
+the environment variable `FRAME3DD_OUTDIR`.
 
 Note that you require write permissions for the input file in order that
 FRAME3DD can append its calculation results to that file.
 
----
+# License
 
 FRAME3DD is free software; you may redistribute it and/or modify it under 
 the terms of the GNU General Public License (GPL) as published by the
@@ -39,42 +38,43 @@ General Public License (GPL) for details.
 ---
 
 You should have obtained this distribution from SourceForge.net 
-
+```
 svn co https://frame3dd.svn.sourceforge.net/svnroot/frame3dd frame3dd 
+```
 
----
+# Contents
 
 Included in this distribution:
 
-LICENSE.txt  ... GNU GPL license
-README.txt   ... this file
+| | |
+| --- | --- |
+|`LICENSE.txt`  | GNU GPL license
+|`README.txt`   | this file
+|`SConstruct`   | optionally used for compiling and building distribution using scons http://www.scons.org/
+|`frame3dd.spec`| build specification for scons, includes changelog
+|`save.plt`     | Gnuplot macro for saving Gnuplot plots as PostScript
+|`doc/`         | documentation (in HTML format)
+|`examples/`    | examples of FRAME input/output files
+|`scons/`       | used by scons to build distribution
+|`src/`         | C source code 
 
-SConstruct   ... optionally used for compiling and building distribution
-                 using scons ... http://www.scons.org/
-frame3dd.spec... build specification for scons, includes changelog
-save.plt     ... Gnuplot macro for saving Gnuplot plots as PostScript
-
-doc/         ... documentation (in HTML format)
-examples/    ... examples of FRAME input/output files
-scons/       ... used by scons to build distribution
-src/         ... C source code 
-
-to compile and build without scons ...
-
+To compile and build without scons:
+```
 gcc -O -Wall -o frame3dd main.c frame3dd.c frame3dd_io.c ldl_dcmp.c lu_dcmp.c coordtrans.c eig.c hpgUtils.c nrutil.c -lm
+```
 
----
+# About the authors
 
-FRAME3DD author
+## FRAME3DD author
 
-(c) 1992-2008 Henri Gavin - Associate Professor 
+© 1992-2008 Henri Gavin - Associate Professor 
 Department of Civil and Environmental Engineering
 Edmund T. Pratt School of Engineering
 Duke University - Box 90287, Durham, NC 27708-0287
 
 mailto:Henri.Gavin@Duke.edu - tel: 919-660-5201 - fax: 919-660-5219 
 
----
+## Packaging, microstran parser and more
 
 Packaging of FRAME3DD for distribution on Linux and Windows,
 as well as implementation of the Microstran file parsers
@@ -85,6 +85,3 @@ Department of Engineering
 Australian National University
 mailto:john.pye@anu.edu.au
 http://jpye.dyndns.org/
-
----
-
