@@ -587,7 +587,7 @@ For compilation/installation, see README.txt.
 			save_ut_dmatrix ( "Ks", K, DoF, "w" );
 
 		/*  display RMS equilibrium error */
-		if ( verbose && ok >= 0 ) evaluate ( error, rms_resid, tol, geom );
+		if ( verbose && ok >= 0 ) evaluate ( error, rms_resid, tol );
 
  		write_static_results ( fp, nN,nE,nL, lc, DoF, N1,N2,
 				F,D,R, r,Q, rms_resid, ok, axial_sign );

@@ -3277,14 +3277,14 @@ int get_file_ext( char *filename, char *ext )
  */
 void dots ( FILE *fp, int n ) {
 	int i;
-	for (i=1; i<=n; i++)	fprintf(fp,".");
+	for (i=1; i<=n; i++) fprintf(fp, ".");
 }
 
 
 /*
  * EVALUATE -  displays a randomly-generated goodbye message.  
  */
-void evaluate ( float error, float rms_resid, float tol, int geom ) 
+void evaluate ( float error, float rms_resid, float tol ) 
 {
 	int r;
 

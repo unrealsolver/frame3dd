@@ -472,5 +472,5 @@ void dots ( FILE *fp, int n );
 /*
  *  EVALUATE -  displays a randomly-generated evaluation message. 
  */ 
-void evaluate (  float error, float rms_resid, float tol, int geom );
+void evaluate (  float error, float rms_resid, float tol );
 
