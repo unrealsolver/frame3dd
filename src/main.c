@@ -55,9 +55,8 @@ For compilation/installation, see README.txt.
 #include "HPGutil.h"
 #include "NRutil.h"
 
-
 // compile the Frame3DD analysis into another code, such as a GUI
-#ifdef WITH_GLOBALS	
+#ifdef WITH_GLOBALS 
  int run_kernel ( int argc, char *argv[] ) {
 #endif
 
@@ -191,8 +190,9 @@ For compilation/installation, see README.txt.
 
 	float	pan_flag = -1.0; // over-ride input file value
 
-	char	extn[16];	// Input Data file name extension
+	char	extension[16];	// Input Data file name extension
 
+        LoadcaseData *load_cases;
 
 	parse_options ( argc, argv, IN_file, OUT_file, 
 			&shear_flag, &geom_flag, &anlyz_flag, &exagg_flag, 
@@ -226,7 +226,7 @@ For compilation/installation, see README.txt.
 		exit(11);
 	}
 
-	filetype = get_file_ext( IN_file, extn ); /* .CSV or .FMM or other? */
+	filetype = get_file_ext( IN_file, extension ); /* .CSV or .FMM or other? */
 
 //	temp_file_location("frame3dd.3dd",strippedInputFile,FRAME3DD_PATHMAX);
 	output_path("frame3dd.3dd",strippedInputFile,FRAME3DD_PATHMAX,NULL);
@@ -326,7 +326,9 @@ For compilation/installation, see README.txt.
 		errorMsg(errMsg); 
 		exit(102);
 	}
-					/* allocate memory for loads ... */
+
+	load_cases = (LoadcaseData *) malloc(sizeof(LoadcaseData) * nL);
+
 	U   =  D3matrix(1,nL,1,nE,1,4);    /* uniform load on each member */
 	W   =  D3matrix(1,nL,1,10*nE,1,13);/* trapezoidal load on each member */
 	P   =  D3matrix(1,nL,1,10*nE,1,5); /* internal point load each member */
@@ -379,7 +381,7 @@ For compilation/installation, see README.txt.
 			d, gX, gY, gZ, r, shear,
 			nF, nU, nW, nP, nT, nD,
 			Q, F_temp, F_mech, F, U, W, P, T,
-			Dp, eqF_mech, eqF_temp, verbose );
+			Dp, eqF_mech, eqF_temp, verbose, load_cases );
 
 	if ( verbose ) {	/* display load data complete */
 		fprintf(stdout,"                                                     ");
@@ -621,7 +623,7 @@ For compilation/installation, see README.txt.
 					nN, nE, nL, lc, DoF,
 					xyz, L, N1,N2, p, D,
 					exagg_static, D3_flag, anlyz,
-					dx, scale );
+					dx, scale, load_cases );
 
 	 } /* end load case loop */
 	} else {		/*  data check only  */
@@ -633,7 +635,7 @@ For compilation/installation, see README.txt.
 	 static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
 			nN, nE, nL, lc, DoF,
 			xyz, L, N1,N2, p, D,
-			exagg_static, D3_flag, anlyz, dx, scale );
+			exagg_static, D3_flag, anlyz, dx, scale, load_cases );
 	}
 
 
@@ -757,6 +759,8 @@ For compilation/installation, see README.txt.
 			pkNx, pkVy, pkVz, pkTx, pkMy, pkMz,
 			pkDx, pkDy, pkDz, pkRx, pkSy, pkSz
 	);
+
+	free(load_cases);
 
 	if ( verbose ) fprintf(stdout,"\n");
 

@@ -45,4 +45,3 @@
 #define Zvert 1	
 
 #endif /* FRAME_COMMON_H */
-

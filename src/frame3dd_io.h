@@ -24,12 +24,14 @@
 	Frame input/output functions (FRAME3DD native format)
 */
 
-#include "common.h"
 #include <time.h>
-#include "microstran/vec3.h"
-
 #include <stdio.h>
 #include <unistd.h>	/* getopt for parsing command-line options	*/
+
+#include "common.h"
+#include "microstran/vec3.h"
+#include "types.h"
+
 
 /**
  PARSE_OPTIONS -  parse command line options			     04mar09
@@ -203,7 +205,8 @@ void read_and_assemble_loads(
 	float **Dp,		/**< prescribed displacements at rctns	*/
 	double ***eqF_mech,	/**< equiv. end forces for mech. loads	*/
 	double ***eqF_temp,	/**< equiv. end forces for temp. loads	*/
-	int verbose		/**< 1: copious output to screen, 0: none */
+	int verbose,		/**< 1: copious output to screen, 0: none */
+    LoadcaseData *load_cases /**< Load cases array  */
 );
 
 

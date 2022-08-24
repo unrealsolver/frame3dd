@@ -1,5 +1,13 @@
 .sconf_temp/
-.sconsign.dblite
 build/
+doc/
+
+.sconsign.dblite
 config.log
+frame3dd.spec
 options.cache
+
+
+# Added by cargo
+
+/target

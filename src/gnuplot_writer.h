@@ -27,6 +27,7 @@
 #include <math.h>
 
 #include "microstran/vec3.h"
+#include "types.h"
 
 /*
  * FORCE_BENT_BEAM
@@ -77,7 +78,8 @@ void static_mesh(
 	char *title, int nN, int nE, int nL, int lc, int DoF,
 	vec3 *xyz, double *L,
 	int *N1, int *N2, float *p, double *D,
-	double exagg_static, int D3_flag, int anlyz, float dx, float scale
+	double exagg_static, int D3_flag, int anlyz, float dx, float scale,
+    LoadcaseData *load_cases
 );
 
 

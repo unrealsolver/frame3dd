@@ -201,7 +201,8 @@ void static_mesh(
 		char *title, int nN, int nE, int nL, int lc, int DoF,
 		vec3 *xyz, double *L,
 		int *N1, int *N2, float *p, double *D, 
-		double exagg_static, int D3_flag, int anlyz, float dx, float scale
+		double exagg_static, int D3_flag, int anlyz, float dx, float scale,
+		LoadcaseData *load_cases
 ){
 	FILE	*fpif=NULL, *fpm=NULL;
 	double	mx, my, mz; /* coordinates of the frame element number labels */
@@ -301,6 +302,7 @@ void static_mesh(
 	} 
 
 	// different plot title for each load case
+	LoadcaseData load_case = load_cases[lc];
 
 	fprintf(fpm,"set title \"%s\\n", title );
 	fprintf(fpm,"analysis file: %s ", IN_file );

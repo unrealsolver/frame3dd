@@ -608,11 +608,11 @@ void read_run_data (
  * FRAME3DD_GETLINE -  get line into a character string. from K&R        03feb94
  */
 int frame3dd_getline (
-FILE	*fp,
-char    *s,
-int     lim
+	FILE	*fp,
+	char	*s,
+	int	lim
 ){
-    int     c=0, i=0;
+    int c=0, i=0;
 
     while (--lim > 0 && (c=getc(fp)) != EOF && c != '\n' )
 	s[i++] = c;
@@ -859,7 +859,8 @@ void read_and_assemble_loads (
 		float ***U, float ***W, float ***P, float ***T, float **Dp,
 		double ***eqF_mech, // equivalent mech loads, global coord 
 		double ***eqF_temp, // equivalent temp loads, global coord 
-		int verbose
+		int verbose,
+		LoadcaseData *load_cases
 ){
 	float	hy, hz;			/* section dimensions in local coords */
 
@@ -892,22 +893,29 @@ void read_and_assemble_loads (
 	for (i=1;i<=nE;i++)	for(j=1;j<=12;j++)	Q[i][j] = 0.0;
 
 	for (lc = 1; lc <= nL; lc++) {		/* begin load-case loop */
+	LoadcaseData *load_case = &load_cases[lc];
 
-	  if ( verbose ) {	/*  display the load case number */
+
+	if ( verbose ) {	/*  display the load case number */
 		textColor('y','g','b','x');
 		fprintf(stdout," load case %d of %d: ", lc, nL );
 		fprintf(stdout,"                                            ");
 		fflush(stdout);
 		color(0);
 		fprintf(stdout,"\n");
-	  }
+	}
 
-	  /* gravity loads applied uniformly to all frame elements ------- */
-	  sfrv=fscanf(fp,"%f %f %f", &gX[lc], &gY[lc], &gZ[lc] );
-	  if (sfrv != 3) sferr("gX gY gZ values in load data");
+	/* gravity loads applied uniformly to all frame elements ------- */
+	sfrv=fscanf(fp,"%f %f %f", &gX[lc], &gY[lc], &gZ[lc] );
 
-	  for (n=1; n<=nE; n++) {
+	// (Refactoring) Populate new data structure
+	load_case->gravity.x = gX[lc];
+	load_case->gravity.y = gY[lc];
+	load_case->gravity.z = gZ[lc];
 
+	if (sfrv != 3) sferr("gX gY gZ values in load data");
+
+	for (n=1; n<=nE; n++) {
 		n1 = J1[n];	n2 = J2[n];
 
 		coord_trans ( xyz, L[n], n1, n2,
@@ -968,26 +976,31 @@ void read_and_assemble_loads (
 
 		if ( F_mech[lc][6*j-5]==0 && F_mech[lc][6*j-4]==0 && F_mech[lc][6*j-3]==0 && F_mech[lc][6*j-2]==0 && F_mech[lc][6*j-1]==0 && F_mech[lc][6*j]==0 )
 		    fprintf(stderr,"\n   Warning: All node loads applied at node %d  are zero\n", j );
-	  }					/* end node point loads  */
+	}					/* end node point loads  */
 
-	  /* uniformly distributed loads --------------------------------- */
-	  sfrv=fscanf(fp,"%d", &nU[lc] );
-	  if (sfrv != 1) sferr("nU value in uniform load data");
-	  if ( verbose ) {
+	/* uniformly distributed loads --------------------------------- */
+	sfrv=fscanf(fp,"%d", &nU[lc] );
+	if (sfrv != 1) sferr("nU value in uniform load data");
+	if ( verbose ) {
 		fprintf(stdout,"  number of uniformly distributed loads ");
-	  	dots(stdout,13);	fprintf(stdout," nU = %3d\n", nU[lc]);
-	  }
-	  if ( nU[lc] < 0 || nU[lc] > nE ) {
+		dots(stdout,13);	fprintf(stdout," nU = %3d\n", nU[lc]);
+	}
+	if ( nU[lc] < 0 || nU[lc] > nE ) {
 		fprintf(stderr,"  number of uniformly distributed loads ");
-	  	dots(stderr,13);
-	  	fprintf(stderr," nU = %3d\n", nU[lc]);
+		dots(stderr,13);
+		fprintf(stderr," nU = %3d\n", nU[lc]);
 		sprintf(errMsg,"\n  error: valid ranges for nU is 0 ... %d \n", nE );
 		errorMsg(errMsg);
 		exit(131);
-	  }
-	  for (i=1; i <= nU[lc]; i++) {	/* ! local element coordinates ! */
+	}
+
+	load_case->loads.uniform.size = nU[lc];
+	for (lc = 0; lc < nL; lc++)
+		load_cases[lc].loads.uniform.data = (UniformLoad *) malloc(sizeof(UniformLoad) * nU[lc]);
+
+	for (i=1; i <= nU[lc]; i++) {	/* ! local element coordinates ! */
 		sfrv=fscanf(fp,"%d", &n );
-	  	if (sfrv != 1) sferr("frame element number in uniform load data");
+		if (sfrv != 1) sferr("frame element number in uniform load data");
 		if ( n < 1 || n > nE ) {
 		    sprintf(errMsg,"\n  error in uniform distributed loads: element number %d is out of range\n",n);
 		    errorMsg(errMsg); 
@@ -996,11 +1009,18 @@ void read_and_assemble_loads (
 		U[lc][i][1] = (double) n;
 		for (l=2; l<=4; l++) {
 			sfrv=fscanf(fp,"%f", &U[lc][i][l] );
-	  		if (sfrv != 1) sferr("load value in uniform load data");
+			if (sfrv != 1) sferr("load value in uniform load data");
 		}
 
 		if ( U[lc][i][2]==0 && U[lc][i][3]==0 && U[lc][i][4]==0 )
 		    fprintf(stderr,"\n   Warning: All distributed loads applied to frame element %d  are zero\n", n );
+
+		UniformLoad *uniform_load = &load_case->loads.uniform.data[i - 1];
+		uniform_load->node_id = n;
+		//load_cases[0].loads.uniform[0].node_id = 1;
+		uniform_load->force.x = U[lc][i][2];
+		uniform_load->force.y = U[lc][i][3];
+		uniform_load->force.z = U[lc][i][4];
 
 		Nx1 = Nx2 = U[lc][i][2]*Le[n] / 2.0;
 		Vy1 = Vy2 = U[lc][i][3]*Le[n] / 2.0;
