@@ -104,9 +104,10 @@ void parse_input(FILE *fp, const char *tpath);
 */
 void read_node_data (
 	FILE *fp,	/**< input data file pointer			*/
-	int nN, 	/**< number of nodes				*/
+	int nN,		/**< number of nodes				*/
 	vec3 *xyz,	/**< XYZ coordinates of each node		*/
-	float *rj	/**< rigid radius of each node			*/
+	float *rj,	/**< rigid radius of each node			*/
+	Frame *frame	/**< Refacotred data				*/
 );
 
 /**

@@ -51,13 +51,13 @@ static void getline_no_comment(
 
 
 /*
- * PARSE_OPTIONS -  parse command line options		
- * command line options over-ride values in the input data file	 	
+ * PARSE_OPTIONS -  parse command line options
+ * command line options over-ride values in the input data file
  * 04 Mar 2009, 22 Sep 2009
  */
 void parse_options (
-	int argc, char *argv[], 
-	char IN_file[], char OUT_file[], 
+	int argc, char *argv[],
+	char IN_file[], char OUT_file[],
 	int *shear_flag,
 	int *geom_flag,
 	int *anlyz_flag,
@@ -65,7 +65,7 @@ void parse_options (
 	int *D3_flag,
 	int *lump_flag,
 	int *modal_flag,
-	double *tol_flag, 
+	double *tol_flag,
 	double *shift_flag,
 	float *pan_flag,
 	int *write_matrix,
@@ -117,7 +117,7 @@ void parse_options (
 	 }
 	}
 
-	// remaining unused flags ... b j k n u y 
+	// remaining unused flags ... b j k n u y
 
 	while ((option=getopt(argc,argv, "i:o:acdhqvwxzs:e:f:g:l:m:p:r:t:")) != -1){
 		switch ( option ) {
@@ -249,7 +249,7 @@ void parse_options (
 
 
 /*
- * DISPLAY_HELP -  display help information to stderr	
+ * DISPLAY_HELP -  display help information to stderr
  * 04 Mar 2009, 22 Sep 2009
  */
 void display_help()
@@ -298,7 +298,7 @@ void display_help()
 
 
 /*
- * DISPLAY_USAGE -  display usage information to stderr	
+ * DISPLAY_USAGE -  display usage information to stderr
  * 04 Mar 2009
  */
 void display_usage()
@@ -331,8 +331,8 @@ void display_version()
 
 
 /*
- * DISPLAY_VERSION_ABOUT-  display version and website to stderr for 
- * running as a background process 
+ * DISPLAY_VERSION_ABOUT-  display version and website to stderr for
+ * running as a background process
  * 22 Sep 2009
  * Contributed by Barry Sanford, barry.sanford@trimjoist.com
  */
@@ -350,16 +350,17 @@ void display_version_about()
 
 
 /*
- * READ_NODE_DATA  -  read node location data		
+ * READ_NODE_DATA  -  read node location data
  * 04 Jan 2009
  */
-void read_node_data( FILE *fp, int nN, vec3 *xyz, float *r )
+void read_node_data( FILE *fp, int nN, vec3 *xyz, float *r, Frame *frame )
 {
 	int	i, j,
 		sfrv=0;		/* *scanf return value	*/
 	char	errMsg[MAXL];
 
 	for (i=1;i<=nN;i++) {		/* read node coordinates	*/
+		Node node = frame->nodes.data[i - 1];
 		sfrv=fscanf(fp, "%d", &j );
 		if (sfrv != 1) sferr("node number in node data");
 		if ( j <= 0 || j > nN ) {
@@ -371,13 +372,18 @@ void read_node_data( FILE *fp, int nN, vec3 *xyz, float *r )
 		if (sfrv != 4) sferr("node coordinates in node data");
 		/* fprintf(stderr,"\nj = %d, pos = (%lf, %lf, %lf), r = %f", j, xyz[j].x, xyz[j].y, xyz[j].z, r[j]); */
 		r[j] = fabs(r[j]);
+
+		node.position.x = xyz[j].x;
+		node.position.y = xyz[j].y;
+		node.position.z = xyz[j].z;
+		node.radius = r[j];
 	}
 	return;
 }
 
 
 /*
- * READ_FRAME_ELEMENT_DATA  -  read frame element property data		
+ * READ_FRAME_ELEMENT_DATA  -  read frame element property data
  * 04 Jan 2009
  */
 void read_frame_element_data (
@@ -515,7 +521,7 @@ void read_frame_element_data (
  * 29 Dec 2008
  */
 void read_run_data (
-	FILE	*fp, 
+	FILE	*fp,
 	char	*OUT_file,	/* output data file name */
 	int	*shear,
 	int	shear_flag,
@@ -537,7 +543,7 @@ void read_run_data (
 	char	mesh_file[96] = "EMPTY_MESH";
 	int	sfrv=0;		/* *scanf return value */
 
-	strcpy(base_file,OUT_file);	
+	strcpy(base_file,OUT_file);
 	while ( base_file[len++] != '\0' )
 		/* the length of the base_file */ ;
 	full_len = len;
@@ -553,7 +559,7 @@ void read_run_data (
 	strcat(infcpath,".if");
 
 	while ( base_file[len] != '/' && base_file[len] != '\\' && len > 0 )
-		len--;	/* find the last '/' or '\' in base_file */ 
+		len--;	/* find the last '/' or '\' in base_file */
 	i = 0;
 	while ( base_file[len] != '\0' )
 		mesh_file[i++] = base_file[len++];
@@ -591,7 +597,7 @@ void read_run_data (
 	    errorMsg(" Remember to specify a frame element increment greater than zero.\n");
 	    exit(74);
 	}
-	
+
 
 	/* over-ride values from input data file with command-line options */
 	if ( shear_flag != -1   )	*shear = shear_flag;
@@ -632,7 +638,7 @@ static const char sep = '/';
 
 /*
  * TEMP_DIR
- * return platform-specific temp file location -- 
+ * return platform-specific temp file location --
  * John Pye, Feb 2009
  */
 static const char *temp_dir(){
@@ -646,7 +652,7 @@ static const char *temp_dir(){
 "write its temporary files.  Set one of these variable, then re-run Frame3DD."
 "The Frame3DD on-line documentation provides help on this issue.");
 		exit(15);
-	} 
+	}
 #else
 	const char *tmp = "/tmp";	/* Linux, Unix, OS X	*/
 #endif
@@ -657,7 +663,7 @@ static const char *temp_dir(){
 /*
  * OUTPUT_PATH
  * return path for output files using either current directory, or FRAME3DD_OUTDIR
- * if specified. -- 
+ * if specified. --
  * John Pye, Feb 2009.
  */
 void output_path(const char *fname, char fullpath[], const int len, const char *default_outdir) {
@@ -666,7 +672,7 @@ void output_path(const char *fname, char fullpath[], const int len, const char *
 
 	/*			deprecated code, January 15 2010 ...
 	if ( fname[0]==sep ) {	in Win32 absolute path starts with C:\ not \ ??
-		// absolute output path specified 
+		// absolute output path specified
 //		res = snprintf(fullpath,len,"%s",fname);
 		res = sprintf(fullpath,"%s",fname);
 	} else {
@@ -697,7 +703,7 @@ void output_path(const char *fname, char fullpath[], const int len, const char *
 
 
 /*
- * PARSE_INPUT                                                            
+ * PARSE_INPUT
  * strip comments from the input file, and write a stripped input file
  * 07 May 2003
  */
@@ -723,9 +729,9 @@ void parse_input(FILE *fp, const char *tpath){
 
 
 /*
- * GETLINE_NO_COMMENT                                                
+ * GETLINE_NO_COMMENT
  * get a line into a character string. from K&R
- * get the line only up to one of the following characters:  \n  %  #  ? 
+ * get the line only up to one of the following characters:  \n  %  #  ?
  * ignore all comma (,) characters
  * ignore all double quote (") characters
  * ignore all semi-colon (;) characters
@@ -738,7 +744,7 @@ void getline_no_comment (
 ){
 	int     c=0, i=0;
 
-	while (--lim > 0 && (c=getc(fp)) != EOF && 
+	while (--lim > 0 && (c=getc(fp)) != EOF &&
 		c != '\n' && c != '%' && c != '#' && c != '?' ) {
 		if (c != ',' && c != '"' && c != ';')
 			s[i++] = c;
@@ -833,12 +839,12 @@ void read_reaction_data (
 
 
 /*
- * READ_AND_ASSEMBLE_LOADS  
+ * READ_AND_ASSEMBLE_LOADS
  * Read load information data, assemble load vectors in global coordinates
- * Returns vector of equivalent loadal forces F_temp and F_mech and 
- * a matrix of equivalent element end forces eqF_temp and eqF_mech from 
- * distributed internal and temperature loadings.  
- * eqF_temp and eqF_mech are computed for the global coordinate system 
+ * Returns vector of equivalent loadal forces F_temp and F_mech and
+ * a matrix of equivalent element end forces eqF_temp and eqF_mech from
+ * distributed internal and temperature loadings.
+ * eqF_temp and eqF_mech are computed for the global coordinate system
  * 2008-09-09, 2015-05-15
  */
 void read_and_assemble_loads (
@@ -850,22 +856,22 @@ void read_and_assemble_loads (
 		float *Ax, float *Asy, float *Asz,
 		float *Iy, float *Iz, float *E, float *G,
 		float *p,
-		float *d, float *gX, float *gY, float *gZ, 
+		float *d, float *gX, float *gY, float *gZ,
 		int *r,
 		int shear,
 		int *nF, int *nU, int *nW, int *nP, int *nT, int *nD,
 		double **Q,
-		double **F_temp, double **F_mech, double *Fo, 
+		double **F_temp, double **F_mech, double *Fo,
 		float ***U, float ***W, float ***P, float ***T, float **Dp,
-		double ***eqF_mech, // equivalent mech loads, global coord 
-		double ***eqF_temp, // equivalent temp loads, global coord 
+		double ***eqF_mech, // equivalent mech loads, global coord
+		double ***eqF_temp, // equivalent temp loads, global coord
 		int verbose,
 		LoadcaseData *load_cases
 ){
 	float	hy, hz;			/* section dimensions in local coords */
 
 	float	x1,x2, w1,w2;
-	double	Ln, R1o, R2o, f01, f02; 
+	double	Ln, R1o, R2o, f01, f02;
 
 	/* equivalent element end forces from distributed and thermal loads */
 	double	Nx1, Vy1, Vz1, Mx1=0.0, My1=0.0, Mz1=0.0,
@@ -1003,7 +1009,7 @@ void read_and_assemble_loads (
 		if (sfrv != 1) sferr("frame element number in uniform load data");
 		if ( n < 1 || n > nE ) {
 		    sprintf(errMsg,"\n  error in uniform distributed loads: element number %d is out of range\n",n);
-		    errorMsg(errMsg); 
+		    errorMsg(errMsg);
 		    exit(132);
 		}
 		U[lc][i][1] = (double) n;
@@ -1067,7 +1073,7 @@ void read_and_assemble_loads (
 			   printf(" eqF %d = %9.2e ", l, eqF_mech[lc][n][l] );
 		}
 		printf("\n");
-		*/ 
+		*/
 	  }				/* end uniformly distributed loads */
 
 	  /* trapezoidally distributed loads ----------------------------- */
@@ -1114,7 +1120,7 @@ void read_and_assemble_loads (
 		  exit(142);
 		}
 		if ( W[lc][i][ 2] > W[lc][i][3] ) {
-		  sprintf(errMsg,"\n   error in x-axis trapezoidal loads, load case: %d , element %d , load %d\n  starting location = %f > ending location = %f \n", 
+		  sprintf(errMsg,"\n   error in x-axis trapezoidal loads, load case: %d , element %d , load %d\n  starting location = %f > ending location = %f \n",
 		  lc, n, i , W[lc][i][2], W[lc][i][3] );
 		  errorMsg(errMsg);
 		  exit(143);
@@ -1177,9 +1183,9 @@ void read_and_assemble_loads (
 		x1 =  W[lc][i][6];  x2 = W[lc][i][7];
 		w1 =  W[lc][i][8]; w2 =  W[lc][i][9];
 
-		R1o = ( (2.0*w1+w2)*x1*x1 - (w1+2.0*w2)*x2*x2 + 
+		R1o = ( (2.0*w1+w2)*x1*x1 - (w1+2.0*w2)*x2*x2 +
 			 3.0*(w1+w2)*Ln*(x2-x1) - (w1-w2)*x1*x2 ) / (6.0*Ln);
-		R2o = ( (w1+2.0*w2)*x2*x2 + (w1-w2)*x1*x2 - 
+		R2o = ( (w1+2.0*w2)*x2*x2 + (w1-w2)*x1*x2 -
 			(2.0*w1+w2)*x1*x1 ) / (6.0*Ln);
 
 		f01 = (  3.0*(w2+4.0*w1)*x1*x1*x1*x1 -  3.0*(w1+4.0*w2)*x2*x2*x2*x2
@@ -1204,7 +1210,7 @@ void read_and_assemble_loads (
 		x1 =  W[lc][i][10]; x2 =  W[lc][i][11];
 		w1 =  W[lc][i][12]; w2 =  W[lc][i][13];
 
-		R1o = ( (2.0*w1+w2)*x1*x1 - (w1+2.0*w2)*x2*x2 + 
+		R1o = ( (2.0*w1+w2)*x1*x1 - (w1+2.0*w2)*x2*x2 +
 			 3.0*(w1+w2)*Ln*(x2-x1) - (w1-w2)*x1*x2 ) / (6.0*Ln);
 		R2o = ( (w1+2.0*w2)*x2*x2 + (w1-w2)*x1*x2 -
 			(2.0*w1+w2)*x1*x1 ) / (6.0*Ln);
@@ -1260,7 +1266,7 @@ void read_and_assemble_loads (
 
 		/* debugging ... check eqF data
 		for (l=1;l<=13;l++) printf(" %9.2e ", W[lc][i][l] );
-		printf("\n"); 
+		printf("\n");
 		printf("n=%d ", n);
 		for (l=1;l<=12;l++) {
 			if (eqF_mech[lc][n][l] != 0)
@@ -1294,7 +1300,7 @@ void read_and_assemble_loads (
 		    exit(151);
 		}
 		P[lc][i][1] = (double) n;
-		for (l=2; l<=5; l++) { 
+		for (l=2; l<=5; l++) {
 			sfrv=fscanf(fp,"%f", &P[lc][i][l] );
 			if (sfrv != 1) sferr("value in point load data");
 		}
@@ -1428,18 +1434,18 @@ void read_and_assemble_loads (
 		eqF_temp[lc][n][12] += ( Mx2*t3 + My2*t6 + Mz2*t9 );
 	  }				/* end thermal loads	*/
 
-	  /* debugging ...  check eqF's prior to asembly 
-	  for (n=1; n<=nE; n++) {	
+	  /* debugging ...  check eqF's prior to asembly
+	  for (n=1; n<=nE; n++) {
 		printf("n=%d ", n);
 		for (l=1;l<=12;l++) {
 			if (eqF_mech[lc][n][l] != 0)
 			   printf(" eqF %d = %9.2e ", l, eqF_mech[lc][n][l] );
 		}
-		printf("\n"); 
+		printf("\n");
 	  }
 	  */
 
-	  // assemble all element equivalent loads into 
+	  // assemble all element equivalent loads into
 	  // separate load vectors for mechanical and thermal loading
 	  for (n=1; n<=nE; n++) {
 	     n1 = J1[n];	n2 = J2[n];
@@ -1478,20 +1484,20 @@ void read_and_assemble_loads (
 
 
 /*
- * READ_MASS_DATA  -  read element densities and extra inertial mass data	16aug01 
+ * READ_MASS_DATA  -  read element densities and extra inertial mass data	16aug01
  */
 void read_mass_data (
 		FILE *fp,
-		char *OUT_file, 
-		int nN, int nE, int *nI, int *nX, 
+		char *OUT_file,
+		int nN, int nE, int *nI, int *nX,
 		float *d, float *EMs,
 		float *NMs, float *NMx, float *NMy, float *NMz,
 		double *L, float *Ax,
 		double *total_mass, double *struct_mass,
-		int *nM, int *Mmethod, int modal_flag, 
-		int *lump, int lump_flag, 
+		int *nM, int *Mmethod, int modal_flag,
+		int *lump, int lump_flag,
 		double *tol, double tol_flag, double *shift, double shift_flag,
-		double *exagg_modal, 
+		double *exagg_modal,
 		char modepath[],
 		int anim[], float *pan, float pan_flag,
 		int verbose, int debug
@@ -1594,8 +1600,8 @@ void read_mass_data (
 		sfrv=fscanf(fp, "%d", &b );
 		if (sfrv != 1) sferr("element number in extra element mass data");
 		if ( b < 1 || b > nE ) {
-			sprintf(errMsg,"\n  error in element mass data: element number out of range   Element: %d  \n   Perhaps you did not specify %d extra masses \n   or perhaps the Input Data file is missing expected data.\n", 
-			b, *nX ); 
+			sprintf(errMsg,"\n  error in element mass data: element number out of range   Element: %d  \n   Perhaps you did not specify %d extra masses \n   or perhaps the Input Data file is missing expected data.\n",
+			b, *nX );
 			errorMsg(errMsg);
 	    		exit(87);
 		}
@@ -1657,7 +1663,7 @@ void read_mass_data (
 		dots(stdout,43); fprintf(stdout," %8.3f\n", *pan);
 	}
 
-	strcpy(base_file,OUT_file);	
+	strcpy(base_file,OUT_file);
 	while ( base_file[len++] != '\0' )
 		/* the length of the base_file */ ;
 	full_len = len;
@@ -1668,7 +1674,7 @@ void read_mass_data (
 	base_file[++len] = '\0';	/* end base_file at the last '.' */
 
 	while ( base_file[len] != '/' && base_file[len] != '\\' && len > 0 )
-		len--;	/* find the last '/' or '\' in base_file */ 
+		len--;	/* find the last '/' or '\' in base_file */
 	i = 0;
 	while ( base_file[len] != '\0' )
 		mode_file[i++] = base_file[len++];
@@ -1680,7 +1686,7 @@ void read_mass_data (
 }
 
 
-/* 
+/*
  * READ_CONDENSE   -  read matrix condensation information 	        30aug01
  */
 void read_condensation_data (
@@ -1733,7 +1739,7 @@ void read_condensation_data (
 	}
 
 	if ( (*nC) > nN ) {
-	  sprintf(errMsg,"\n  error in matrix condensation data: \n error: nC > nN ... nC=%d; nN=%d;\n The number of nodes with condensed DoF's may not exceed the total number of nodes.\n", 
+	  sprintf(errMsg,"\n  error in matrix condensation data: \n error: nC > nN ... nC=%d; nN=%d;\n The number of nodes with condensed DoF's may not exceed the total number of nodes.\n",
 	  *nC, nN );
 	  errorMsg(errMsg);
 	  exit(90);
@@ -1773,7 +1779,7 @@ void read_condensation_data (
 		errorMsg(errMsg);
 	 }
 	 if ( (m[i] < 0 || m[i] > nM) && *Cmethod == 3 ) {
-	  sprintf(errMsg,"\n  error in matrix condensation data: \n  m[%d] = %d \n The condensed mode number must be between   1 and %d (modes).\n", 
+	  sprintf(errMsg,"\n  error in matrix condensation data: \n  m[%d] = %d \n The condensed mode number must be between   1 and %d (modes).\n",
 	  i, m[i], nM );
 	  errorMsg(errMsg);
 	  exit(92);
@@ -1785,7 +1791,7 @@ void read_condensation_data (
 }
 
 
-/* 
+/*
  * WRITE_INPUT_DATA  -  save input data					07nov02
  */
 void write_input_data (
@@ -1796,8 +1802,8 @@ void write_input_data (
 	vec3 *xyz, float *r,
 	int *J1, int *J2,
 	float *Ax, float *Asy, float *Asz, float *Jx, float *Iy, float *Iz,
-	float *E, float *G, float *p, float *d, 
-	float *gX, float *gY, float *gZ, 
+	float *E, float *G, float *p, float *d,
+	float *gX, float *gY, float *gZ,
 	double **Ft, double **Fm, float **Dp,
 	int *R,
 	float ***U, float ***W, float ***P, float ***T,
@@ -1831,9 +1837,9 @@ void write_input_data (
 
 	for (i=1; i<=80; i++)	fprintf(fp,"_");	fprintf(fp,"\n");
 
-	fprintf(fp,"%5d NODES          ", nN ); 
+	fprintf(fp,"%5d NODES          ", nN );
 	fprintf(fp,"%5d FIXED NODES    ", nR );
-	fprintf(fp,"%5d FRAME ELEMENTS ", nE ); 
+	fprintf(fp,"%5d FRAME ELEMENTS ", nE );
 	fprintf(fp,"%3d LOAD CASES   \n", nL );
 
 	for (i=1; i<=80; i++)	fprintf(fp,"_"); fprintf(fp,"\n");
@@ -2069,7 +2075,7 @@ void write_static_results (
 
 
 /*
- * CSV_filename - return the file name for the .CSV file and 
+ * CSV_filename - return the file name for the .CSV file and
  * whether the file should be written or appended (wa)
  * 1 Nov 2015
  */
@@ -2158,7 +2164,7 @@ void write_static_csv (
 			i,
 			15+(i-1)*(nN*2+nE*4+13) + 2*nL + nN - 1,
 			17+(i-1)*(nN*2+nE*4+13) + 2*nL + nN + 2*nE - 1,
-			19+(i-1)*(nN*2+nE*4+13) + 2*nL + 2*nN + 2*nE - 1, 
+			19+(i-1)*(nN*2+nE*4+13) + 2*nL + 2*nN + 2*nE - 1,
 			23+(i-1)*(nN*2+nE*4+13) + 2*nL + 2*nN + 4*nE - 1 );
 	 }
 
@@ -2240,10 +2246,10 @@ void write_static_csv (
  * 12 Dec 2009
  */
 /*
-void write_value ( 
-		FILE *fp, 
-		int sig_figs, 
-		float threshold, 
+void write_value (
+		FILE *fp,
+		int sig_figs,
+		float threshold,
 		char *spaces,
 		double x
 ){
@@ -2258,7 +2264,7 @@ void write_value (
 
 
 /*
- * WRITE_STATIC_MFILE -  						
+ * WRITE_STATIC_MFILE -
  * save node displacements and frame element end forces in an m-file
  * this function interacts with frame_3dd.m, an m-file interface to frame3dd
  * 09 Sep 2008
@@ -2406,17 +2412,17 @@ void peak_internal_forces (
 		int lc, 	// load case number
 		int nL, 	// total number of load cases
 		vec3 *xyz, 	// node locations
-		double **Q, int nN, int nE, double *L, int *N1, int *N2, 
+		double **Q, int nN, int nE, double *L, int *N1, int *N2,
 		float *Ax,float *Asy,float *Asz,float *Jx,float *Iy,float *Iz,
 		float *E, float *G, float *p,
 		float *d, float gX, float gY, float gZ,
 		int nU, float **U, int nW, float **W, int nP, float **P,
-		double *D, int shear, 
+		double *D, int shear,
 		float dx,	// x-axis increment along frame element
 
-		// vectors of peak forces, moments, displacements and slopes 
-		// for each frame element, for load case "lc" 
-		double **pkNx, double **pkVy, double **pkVz, 
+		// vectors of peak forces, moments, displacements and slopes
+		// for each frame element, for load case "lc"
+		double **pkNx, double **pkVy, double **pkVz,
 		double **pkTx, double **pkMy, double **pkMz,
 		double **pkDx, double **pkDy, double **pkDz,
 		double **pkRx, double **pkSy, double **pkSz
@@ -2428,10 +2434,10 @@ void peak_internal_forces (
 		xy1,xy2, wy1,wy2,	/* trapz load data, local y dir */
 		xz1,xz2, wz1,wz2;	/* trapz load data, local z dir */
 
-	double	wx=0, wy=0, wz=0, // distributed loads in local coords at x[i] 
+	double	wx=0, wy=0, wz=0, // distributed loads in local coords at x[i]
 		wx_=0,wy_=0,wz_=0,// distributed loads in local coords at x[i-1]
 		wxg=0,wyg=0,wzg=0,// gravity loads in local x, y, z coord's
-		tx=0.0, tx_=0.0;  // distributed torque about local x coord 
+		tx=0.0, tx_=0.0;  // distributed torque about local x coord
 
 	double	xp;		/* location of internal point loads	*/
 
@@ -2447,7 +2453,7 @@ void peak_internal_forces (
 		Dx, Dy, Dz,	/* frame el. displ. in local x,y,z, dir's */
 		Rx;		/* twist rotation about the local x-axis */
 
-	int	n, m,		// frame element number	
+	int	n, m,		// frame element number
 		nx=1000,	// number of sections alont x axis
 		cU=0, cW=0, cP=0, // counters for U, W, and P loads
 		i,		// counter along x axis from node N1 to node N2
@@ -2456,7 +2462,7 @@ void peak_internal_forces (
 	if (dx == -1.0)	return;	// skip calculation of internal forces and displ
 
 	for ( m=1; m <= nE; m++ ) {	// initialize peak values to zero
-		pkNx[lc][m] = pkVy[lc][m] = pkVz[lc][m] = 0.0; 
+		pkNx[lc][m] = pkVy[lc][m] = pkVz[lc][m] = 0.0;
 		pkTx[lc][m] = pkMy[lc][m] = pkMz[lc][m] = 0.0;
 		pkDx[lc][m] = pkDy[lc][m] = pkDz[lc][m] = 0.0;
 		pkRx[lc][m] = pkSy[lc][m] = pkSz[lc][m] = 0.0;
@@ -2468,7 +2474,7 @@ void peak_internal_forces (
 
 		dx = L[m] / (float) nx; // x-axis increment, same for each element
 
-	// no need to allocate memory for interior force or displacement data 
+	// no need to allocate memory for interior force or displacement data
 
 	// find interior axial force, shear forces, torsion and bending moments
 
@@ -2527,7 +2533,7 @@ void peak_internal_forces (
 		Sz_ = Sz = -u5;	// slope in  local z  direction  at node N1
 
 		// accumulate interior span loads, forces, moments, slopes, and displacements
-		// all in a single loop  
+		// all in a single loop
 
 		for (i=1; i<=nx; i++) {
 
@@ -2558,7 +2564,7 @@ void peak_internal_forces (
 			    }
 			}
 
-			// trapezoidal integration of distributed loads 
+			// trapezoidal integration of distributed loads
 			// for axial forces, shear forces and torques
 
 			Nx = Nx - 0.5*(wx+wx_)*dx;
@@ -2571,8 +2577,8 @@ void peak_internal_forces (
 			wy_ = wy;
 			wz_ = wz;
 			tx_ = tx;
-			
-			// add interior point loads 
+
+			// add interior point loads
 			for (n=1; n<=10*nE && cP<nP; n++) {
 			    if ( (int) P[n][1] == m ) { // load n on element m
 				if (i==nx) ++cP;
@@ -2581,7 +2587,7 @@ void peak_internal_forces (
 					Nx -= P[n][2] * 0.5 * (1.0 - (xp-x)/dx);
 					Vy -= P[n][3] * 0.5 * (1.0 - (xp-x)/dx);
 					Vz -= P[n][4] * 0.5 * (1.0 - (xp-x)/dx);
-					
+
 				}
 				if ( x-dx <= xp && xp < x ) {
 					Nx -= P[n][2] * 0.5 * (1.0 - (x-dx-xp)/dx);
@@ -2604,7 +2610,7 @@ void peak_internal_forces (
 			// transverse slope along frame element "m"
 			Sy = Sy + 0.5*(Mz_ + Mz)/(E[m]*Iz[m])*dx;
 			Sz = Sz + 0.5*(My_ + My)/(E[m]*Iy[m])*dx;
-		
+
 			if ( shear ) {
 				Sy += Vy/(G[m]*Asy[m]);
 				Sz += Vz/(G[m]*Asz[m]);
@@ -2648,16 +2654,16 @@ void peak_internal_forces (
 
 		// at the end of this loop,
 		// the variables Nx; Vy; Vz; Tx; My; Mz; Dx; Dy; Dz; Rx; Sy; Sz;
-		// contain the forces, moments, displacements, and slopes 
+		// contain the forces, moments, displacements, and slopes
 		// at node N2 of element "m"
 
 		// comparing the internal forces and displacements at node N2
-		// to the values conmputed via trapezoidal rule could give an estimate 
+		// to the values conmputed via trapezoidal rule could give an estimate
 		// of the accuracy of the trapezoidal rule, (how small "dx" needs to be)
-			
-		// linear correction for bias in trapezoidal integration 
+
+		// linear correction for bias in trapezoidal integration
 		// is not implemented, the peak values are affected by accumulation
-		// of round-off error in trapezoidal rule integration.   
+		// of round-off error in trapezoidal rule integration.
 		// round-off errors are larger in the peak displacements than in the peak forces
 
 
@@ -2668,14 +2674,14 @@ void peak_internal_forces (
 	fprintf(stderr,"\t(local)\n");
 	fprintf(stderr,"  Elmnt       Nx          Vy         Vz");
 	fprintf(stderr,"        Txx        Myy        Mzz\n");
-	for (m=1; m<=nE; m++) 
+	for (m=1; m<=nE; m++)
 		fprintf(stderr," %5d  %10.3f  %10.3f %10.3f %10.3f %10.3f %10.3f\n",
 			m, pkNx[lc][m], pkVy[lc][m], pkVz[lc][m], pkTx[lc][m], pkMy[lc][m], pkMz[lc][m] );
-	
+
 	fprintf(stderr,"\n P E A K   I N T E R N A L   D I S P L A C E M E N T S");
 	fprintf(stderr,"\t\t\t(local)\n");
   	fprintf(stderr,"  Elmnt  X-dsp       Y-dsp       Z-dsp       X-rot       Y-rot       Z-rot\n");
-	for (m=1; m<=nE; m++) 
+	for (m=1; m<=nE; m++)
 		fprintf(stderr," %5d %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f\n",
 			m, pkDx[lc][m], pkDy[lc][m], pkDz[lc][m], pkRx[lc][m], pkSy[lc][m], pkSz[lc][m] );
 
@@ -2683,7 +2689,7 @@ void peak_internal_forces (
 
 
 /*
- * WRITE_INTERNAL_FORCES - 
+ * WRITE_INTERNAL_FORCES -
  * calculate frame element internal forces, Nx, Vy, Vz, Tx, My, Mz
  * calculate frame element local displacements, Rx, Dx, Dy, Dz
  * write internal forces and local displacements to an output data file
@@ -2692,8 +2698,8 @@ void peak_internal_forces (
 void write_internal_forces (
 		char OUT_file[],
 		FILE *fp, char infcpath[], int lc, int nL, char title[], float dx,
-		vec3 *xyz, 
-		double **Q, int nN, int nE, double *L, int *J1, int *J2, 
+		vec3 *xyz,
+		double **Q, int nN, int nE, double *L, int *J1, int *J2,
 		float *Ax,float *Asy,float *Asz,float *Jx,float *Iy,float *Iz,
 		float *E, float *G, float *p,
 		float *d, float gX, float gY, float gZ,
@@ -2707,10 +2713,10 @@ void write_internal_forces (
 		xy1,xy2, wy1,wy2,	/* trapz load data, local y dir */
 		xz1,xz2, wz1,wz2;	/* trapz load data, local z dir */
 
-	double	wx=0, wy=0, wz=0, // distributed loads in local coords at x[i] 
+	double	wx=0, wy=0, wz=0, // distributed loads in local coords at x[i]
 		wx_=0,wy_=0,wz_=0,// distributed loads in local coords at x[i-1]
 		wxg=0,wyg=0,wzg=0,// gravity loads in local x, y, z coord's
-		tx=0.0, tx_=0.0;  // distributed torque about local x coord 
+		tx=0.0, tx_=0.0;  // distributed torque about local x coord
 
 	double	xp;		/* location of internal point loads	*/
 
@@ -2750,18 +2756,18 @@ void write_internal_forces (
 
 	(void) time(&now);
 
- 
+
 	CSV_filename( CSV_file, wa, OUT_file, lc );
 
 	if ((fpcsv = fopen (CSV_file, "a")) == NULL) {
 	  sprintf (errMsg,"\n  error: cannot open CSV output data file: %s \n", CSV_file);
 	  errorMsg(errMsg);
 	  exit(17);
-	}  
+	}
 
 	/* file name for internal force data for load case "lc" */
 	sprintf(fnif,"%s%02d",infcpath,lc);
-	
+
 	/* open the interior force data file */
 	if ((fpif = fopen (fnif, "w")) == NULL) {
          sprintf (errMsg,"\n  error: cannot open interior force data file: %s \n",fnif);
@@ -2778,7 +2784,7 @@ void write_internal_forces (
 	fprintf(fpif,"# F R A M E   E L E M E N T   I N T E R N A L   F O R C E S (local)\n");
 	fprintf(fpif,"# F R A M E   E L E M E N T   T R A N S V E R S E   D I S P L A C E M E N T S (local)\n\n");
 
-	// write header information for each frame element to txt output data file 
+	// write header information for each frame element to txt output data file
 	fprintf(fp,"\nP E A K   F R A M E   E L E M E N T   I N T E R N A L   F O R C E S");
 	fprintf(fp,"(local)\", \n");
 	fprintf(fp,"  Elmnt   .         Nx          Vy         Vz");
@@ -2820,8 +2826,8 @@ void write_internal_forces (
 
 
 	// the local x-axis for frame element "m" starts at 0 and ends at L[m]
-		for (i=0; i<nx; i++)	x[i] = i*dx;	
-		x[nx] = L[m];		
+		for (i=0; i<nx; i++)	x[i] = i*dx;
+		x[nx] = L[m];
 		dxnx = x[nx]-x[nx-1];	// length of the last x-axis increment
 
 
@@ -2893,7 +2899,7 @@ void write_internal_forces (
 			    }
 			}
 
-			// trapezoidal integration of distributed loads 
+			// trapezoidal integration of distributed loads
 			// for axial forces, shear forces and torques
 			if (i==nx)	dx_ = dxnx;
 			Nx[i] = Nx[i-1] - 0.5*(wx+wx_)*dx_;
@@ -2906,8 +2912,8 @@ void write_internal_forces (
 			wy_ = wy;
 			wz_ = wz;
 			tx_ = tx;
-			
-			// add interior point loads 
+
+			// add interior point loads
 			for (n=1; n<=10*nE && cP<nP; n++) {
 			    if ( (int) P[n][1] == m ) { // load n on element m
 				if (i==nx) ++cP;
@@ -2916,7 +2922,7 @@ void write_internal_forces (
 					Nx[i] -= P[n][2] * 0.5 * (1.0 - (xp-x[i])/dx);
 					Vy[i] -= P[n][3] * 0.5 * (1.0 - (xp-x[i])/dx);
 					Vz[i] -= P[n][4] * 0.5 * (1.0 - (xp-x[i])/dx);
-					
+
 				}
 				if ( x[i]-dx <= xp && xp < x[i] ) {
 					Nx[i] -= P[n][2] * 0.5 * (1.0 - (x[i]-dx-xp)/dx);
@@ -2948,7 +2954,7 @@ void write_internal_forces (
 			Mz[i] -= (Mz[nx]-Q[m][12]) * i/nx;
 		}
 
-	// find interior transverse displacements 
+	// find interior transverse displacements
 
 		i1 = 6*(n1-1);	i2 = 6*(n2-1);
 
@@ -2989,7 +2995,7 @@ void write_internal_forces (
 		for (i=1; i<=nx; i++) {
 			Dx[i] -= (Dx[nx]-u7) * i/nx;
 		}
-		
+
 		// torsional rotation along frame element "m"
 		dx_ = dx;
 		for (i=1; i<=nx; i++) {
@@ -3000,7 +3006,7 @@ void write_internal_forces (
 		for (i=1; i<=nx; i++) {
 			Rx[i] -= (Rx[nx]-u10) * i/nx;
 		}
-		
+
 		// transverse slope along frame element "m"
 		dx_ = dx;
 		for (i=1; i<=nx; i++) {
@@ -3032,7 +3038,7 @@ void write_internal_forces (
 			Dz[i] -= (Dz[nx]-u9) * i/nx;
 		}
 
-	// initialize the maximum and minimum element forces and displacements 
+	// initialize the maximum and minimum element forces and displacements
 		maxNx = minNx = Nx[0]; maxVy = minVy = Vy[0]; maxVz = minVz = Vz[0];  	//  maximum internal forces
 		maxTx = minTx = Tx[0]; maxMy = minMy = My[0]; maxMz = minMz = Mz[0]; 	//  maximum internal moments
 		maxDx = minDx = Dx[0]; maxDy = minDy = Dy[0]; maxDz = minDz = Dz[0]; 	//  maximum element displacements
@@ -3101,7 +3107,7 @@ void write_internal_forces (
 				m, maxNx, maxVy, maxVz, maxTx, maxMy, maxMz );
 		fprintf(fpcsv," %5d, \"min\", %10.3f,  %10.3f, %10.3f, %10.3f, %10.3f, %10.3f\n",
 				m, minNx, minVy, minVz, minTx, minMy, minMz );
-	
+
 /*
 		fprintf(fp," %5d %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f\n",
 				m, maxDx, maxDy, maxDz, maxRx, maxSy, maxSz );
@@ -3132,7 +3138,7 @@ void write_internal_forces (
 
 
 /*
- * WRITE_MODAL_RESULTS -  save modal frequencies and mode shapes	
+ * WRITE_MODAL_RESULTS -  save modal frequencies and mode shapes
  * 16 Aug 2001
  */
 void write_modal_results(
@@ -3302,9 +3308,9 @@ void dots ( FILE *fp, int n ) {
 
 
 /*
- * EVALUATE -  displays a randomly-generated goodbye message.  
+ * EVALUATE -  displays a randomly-generated goodbye message.
  */
-void evaluate ( float error, float rms_resid, float tol ) 
+void evaluate ( float error, float rms_resid, float tol )
 {
 	int r;
 
@@ -3324,7 +3330,7 @@ void evaluate ( float error, float rms_resid, float tol )
 		fprintf(stdout," !! not converged !! ");
 	}
 	(void) fflush(stdout);
-	color(0);	
+	color(0);
 	fprintf(stdout,"\n");
 	fprintf(stdout,"  RMS residual incremental displ. = %9.3e ", rms_resid);
 	dots(stdout,17);
@@ -3334,19 +3340,19 @@ void evaluate ( float error, float rms_resid, float tol )
 
 	    textColor('y','b','b','x');
 	    switch ( r ) {
-		case 0: fprintf(stdout," * brilliant!  * "); break; 
-		case 1: fprintf(stdout," *  chuffed!   * "); break; 
-		case 2: fprintf(stdout," *  woo-hoo!   * "); break; 
-		case 3: fprintf(stdout," *  wicked!    * "); break; 
-		case 4: fprintf(stdout," *   beaut!    * "); break; 
-		case 5: fprintf(stdout," *   flash!    * "); break; 
-		case 6: fprintf(stdout," *  well done! * "); break; 
-		case 7: fprintf(stdout," *  priceless! * "); break; 
-		case 8: fprintf(stdout," *  sweet as!  * "); break; 
-		case 9: fprintf(stdout," *good as gold!* "); break; 
+		case 0: fprintf(stdout," * brilliant!  * "); break;
+		case 1: fprintf(stdout," *  chuffed!   * "); break;
+		case 2: fprintf(stdout," *  woo-hoo!   * "); break;
+		case 3: fprintf(stdout," *  wicked!    * "); break;
+		case 4: fprintf(stdout," *   beaut!    * "); break;
+		case 5: fprintf(stdout," *   flash!    * "); break;
+		case 6: fprintf(stdout," *  well done! * "); break;
+		case 7: fprintf(stdout," *  priceless! * "); break;
+		case 8: fprintf(stdout," *  sweet as!  * "); break;
+		case 9: fprintf(stdout," *good as gold!* "); break;
 	    }
 	    (void) fflush(stdout);
-	    color(0);	
+	    color(0);
 	    fprintf(stdout,"\n");
 	    return;
 	}
@@ -3355,40 +3361,40 @@ void evaluate ( float error, float rms_resid, float tol )
 
 	    textColor('y','g','b','x');
 	    switch ( r ) {
-		case 0: fprintf(stdout,"   acceptable!   "); break; 
-		case 1: fprintf(stdout,"      bling!     "); break; 
-		case 2: fprintf(stdout,"  that will do!  "); break; 
-		case 3: fprintf(stdout,"   not shabby!   "); break; 
-		case 4: fprintf(stdout,"   reasonable!   "); break; 
-		case 5: fprintf(stdout,"   very good!    "); break; 
-		case 6: fprintf(stdout,"   up to snuff!  "); break; 
-		case 7: fprintf(stdout,"     bully!      "); break; 
-		case 8: fprintf(stdout,"      nice!      "); break; 
-		case 9: fprintf(stdout,"     choice!     "); break; 
+		case 0: fprintf(stdout,"   acceptable!   "); break;
+		case 1: fprintf(stdout,"      bling!     "); break;
+		case 2: fprintf(stdout,"  that will do!  "); break;
+		case 3: fprintf(stdout,"   not shabby!   "); break;
+		case 4: fprintf(stdout,"   reasonable!   "); break;
+		case 5: fprintf(stdout,"   very good!    "); break;
+		case 6: fprintf(stdout,"   up to snuff!  "); break;
+		case 7: fprintf(stdout,"     bully!      "); break;
+		case 8: fprintf(stdout,"      nice!      "); break;
+		case 9: fprintf(stdout,"     choice!     "); break;
 	    }
 	    (void) fflush(stdout);
-	    color(0);	
+	    color(0);
 	    fprintf(stdout,"\n");
 	    return;
 	}
-	
+
 	if ( rms_resid < 1e-12 ) {
 
 	    textColor('y','c','b','x');
 	    switch ( r ) {
-		case 0: fprintf(stdout," adequate. "); break; 
-		case 1: fprintf(stdout," passable. "); break; 
-		case 2: fprintf(stdout," all right. "); break; 
-		case 3: fprintf(stdout," ok. "); break; 
-		case 4: fprintf(stdout," not bad. "); break; 
-		case 5: fprintf(stdout," fine. "); break; 
-		case 6: fprintf(stdout," fair. "); break; 
-		case 7: fprintf(stdout," respectable. "); break; 
-		case 8: fprintf(stdout," tolerable. "); break; 
-		case 9: fprintf(stdout," just ok. "); break; 
+		case 0: fprintf(stdout," adequate. "); break;
+		case 1: fprintf(stdout," passable. "); break;
+		case 2: fprintf(stdout," all right. "); break;
+		case 3: fprintf(stdout," ok. "); break;
+		case 4: fprintf(stdout," not bad. "); break;
+		case 5: fprintf(stdout," fine. "); break;
+		case 6: fprintf(stdout," fair. "); break;
+		case 7: fprintf(stdout," respectable. "); break;
+		case 8: fprintf(stdout," tolerable. "); break;
+		case 9: fprintf(stdout," just ok. "); break;
 	    }
 	    (void) fflush(stdout);
-	    color(0);	
+	    color(0);
 	    fprintf(stdout,"\n");
 	    return;
 	}
@@ -3397,19 +3403,19 @@ void evaluate ( float error, float rms_resid, float tol )
 
 	    textColor('y','r','b','x');
 	    switch ( r ) {
-		case 0: fprintf(stdout," abominable! "); break; 
-		case 1: fprintf(stdout," puckeroo! "); break; 
-		case 2: fprintf(stdout," atrocious! "); break; 
-		case 3: fprintf(stdout," not ok! "); break; 
-		case 4: fprintf(stdout," wonky! "); break; 
-		case 5: fprintf(stdout," crappy! "); break; 
-		case 6: fprintf(stdout," oh noooo! "); break; 
-		case 7: fprintf(stdout," abominable! "); break; 
-		case 8: fprintf(stdout," munted! "); break; 
-		case 9: fprintf(stdout," awful! "); break; 
+		case 0: fprintf(stdout," abominable! "); break;
+		case 1: fprintf(stdout," puckeroo! "); break;
+		case 2: fprintf(stdout," atrocious! "); break;
+		case 3: fprintf(stdout," not ok! "); break;
+		case 4: fprintf(stdout," wonky! "); break;
+		case 5: fprintf(stdout," crappy! "); break;
+		case 6: fprintf(stdout," oh noooo! "); break;
+		case 7: fprintf(stdout," abominable! "); break;
+		case 8: fprintf(stdout," munted! "); break;
+		case 9: fprintf(stdout," awful! "); break;
 	    }
 	    (void) fflush(stdout);
-	    color(0);	
+	    color(0);
 	    fprintf(stdout,"\n");
 	    return;
 	}
