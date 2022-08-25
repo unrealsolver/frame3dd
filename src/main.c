@@ -436,217 +436,224 @@ For compilation/installation, see README.txt.
 
 
 	if ( anlyz ) {			/* solve the problem	*/
-	 srand(time(NULL));
-	 for (lc=1; lc<=nL; lc++) {	/* begin load case analysis loop */
+		srand(time(NULL));
+		for (lc=1; lc<=nL; lc++) {	/* begin load case analysis loop */
+			if ( verbose ) {	/* display the load case number  */
+				fprintf(stdout,"\n");
+				textColor('y','g','b','x');
+				fprintf(stdout," Load Case %d of %d ... ", lc,nL );
+				fprintf(stdout,"                                          ");
 
-		if ( verbose ) {	/* display the load case number  */
-			fprintf(stdout,"\n");
-			textColor('y','g','b','x');
-			fprintf(stdout," Load Case %d of %d ... ", lc,nL );
-			fprintf(stdout,"                                          ");
+				fflush(stdout);
+				color(0);
+				fprintf(stdout,"\n");
+			}
 
-			fflush(stdout);
-			color(0);
-			fprintf(stdout,"\n");
-		}
+			/*  initialize displacements and displ. increment to {0}  */
+			/*  initialize reactions     and react. increment to {0}  */
+			for (i=1; i<=DoF; i++) D[i] = dD[i] = R[i] = dR[i] = 0.0;
 
-		/*  initialize displacements and displ. increment to {0}  */
-		/*  initialize reactions     and react. increment to {0}  */
-		for (i=1; i<=DoF; i++)	D[i] = dD[i] = R[i] = dR[i] = 0.0;
+			/*  initialize internal element end forces Q = {0}	*/
+			for (i=1; i<=nE; i++) for (j=1;j<=12;j++) Q[i][j] = 0.0;
 
-		/*  initialize internal element end forces Q = {0}	*/
-		for (i=1; i<=nE; i++)	for (j=1;j<=12;j++)	Q[i][j] = 0.0;
-
-		/*  elastic stiffness matrix  [K({D}^(i))], {D}^(0)={0} (i=0) */
-		assemble_K ( K, DoF, nE, xyz, rj, L, Le, N1, N2,
-					Ax, Asy, Asz, Jx,Iy,Iz, E, G, p,
-					shear, geom, Q, debug );
+			/*  elastic stiffness matrix  [K({D}^(i))], {D}^(0)={0} (i=0) */
+			assemble_K(
+				K, DoF, nE, xyz, rj, L, Le, N1, N2,
+				Ax, Asy, Asz, Jx,Iy,Iz, E, G, p,
+				shear, geom, Q, debug
+			);
 
 #ifdef MATRIX_DEBUG
-		save_dmatrix ( "Ku", K, 1,DoF, 1,DoF, 0, "w" ); // unloaded stiffness matrix
+			save_dmatrix ( "Ku", K, 1,DoF, 1,DoF, 0, "w" ); // unloaded stiffness matrix
 #endif
 
-		/* first apply temperature loads only, if there are any ... */
-		if (nT[lc] > 0) {
-			if ( verbose )
-				fprintf(stdout," Linear Elastic Analysis ... Temperature Loads\n");
+			/* first apply temperature loads only, if there are any ... */
+			if (nT[lc] > 0) {
+				if (verbose)
+					fprintf(stdout," Linear Elastic Analysis ... Temperature Loads\n");
 
-			/*  solve {F_t} = [K({D=0})] * {D_t} */
-			solve_system(K,dD,F_temp[lc],dR,DoF,q,r,&ok,verbose,&rms_resid);
+				/*  solve {F_t} = [K({D=0})] * {D_t} */
+				solve_system(K,dD,F_temp[lc],dR,DoF,q,r,&ok,verbose,&rms_resid);
 
-			/* increment {D_t} = {0} + {D_t} temp.-induced displ */
-			for (i=1; i<=DoF; i++)	if (q[i]) D[i] += dD[i];
-			/* increment {R_t} = {0} + {R_t} temp.-induced react */
-			for (i=1; i<=DoF; i++)	if (r[i]) R[i] += dR[i];
+				/* increment {D_t} = {0} + {D_t} temp.-induced displ */
+				for (i=1; i<=DoF; i++)	if (q[i]) D[i] += dD[i];
+				/* increment {R_t} = {0} + {R_t} temp.-induced react */
+				for (i=1; i<=DoF; i++)	if (r[i]) R[i] += dR[i];
 
-			if (geom) {	/* assemble K = Ke + Kg */
-			 /* compute   {Q}={Q_t} ... temp.-induced forces     */
-			 element_end_forces ( Q, nE, xyz, L, Le, N1,N2,
-				Ax, Asy,Asz, Jx,Iy,Iz, E,G, p,
-				eqF_temp[lc], eqF_mech[lc], D, shear, geom,
-				&axial_strain_warning );
-
-			 /* assemble temp.-stressed stiffness [K({D_t})]     */
-			 assemble_K ( K, DoF, nE, xyz, rj, L, Le, N1, N2,
+				if (geom) {	/* assemble K = Ke + Kg */
+				 /* compute   {Q}={Q_t} ... temp.-induced forces     */
+					element_end_forces(
+						Q, nE, xyz, L, Le, N1,N2,
+						Ax, Asy,Asz, Jx,Iy,Iz, E,G, p,
+						eqF_temp[lc], eqF_mech[lc], D, shear, geom,
+						&axial_strain_warning
+					);
+					/* assemble temp.-stressed stiffness [K({D_t})]     */
+					assemble_K(
+						K, DoF, nE, xyz, rj, L, Le, N1, N2,
 						Ax,Asy,Asz, Jx,Iy,Iz, E, G, p,
-						shear,geom, Q, debug );
+						shear,geom, Q, debug
+					);
+				}
 			}
-		}
 
-		/* ... then apply mechanical loads only, if there are any ... */
-		if ( nF[lc]>0 || nU[lc]>0 || nW[lc]>0 || nP[lc]>0 || nD[lc]>0 ||
-		     gX[lc] != 0 || gY[lc] != 0 || gZ[lc] != 0 ) {
-			if ( verbose )
-				fprintf(stdout," Linear Elastic Analysis ... Mechanical Loads\n");
-			/* incremental displ at react'ns = prescribed displ */
-			for (i=1; i<=DoF; i++)	if (r[i]) dD[i] = Dp[lc][i];
+			/* ... then apply mechanical loads only, if there are any ... */
+			if (
+				nF[lc]>0 || nU[lc]>0 || nW[lc]>0 || nP[lc]>0 || nD[lc]>0 ||
+				gX[lc] != 0 || gY[lc] != 0 || gZ[lc] != 0
+			) {
+				if ( verbose )
+					fprintf(stdout," Linear Elastic Analysis ... Mechanical Loads\n");
+				/* incremental displ at react'ns = prescribed displ */
+				for (i=1; i<=DoF; i++)	if (r[i]) dD[i] = Dp[lc][i];
 
-			/*  solve {F_m} = [K({D_t})] * {D_m}	*/
-			solve_system(K,dD,F_mech[lc],dR,DoF,q,r,&ok,verbose,&rms_resid);
+				/*  solve {F_m} = [K({D_t})] * {D_m}	*/
+				solve_system(K,dD,F_mech[lc],dR,DoF,q,r,&ok,verbose,&rms_resid);
 
-			/* combine {D} = {D_t} + {D_m}	*/
-			for (i=1; i<=DoF; i++) {
-				if (q[i])	D[i] += dD[i];
-				else {		D[i]  = Dp[lc][i]; dD[i] = 0.0; }
+				/* combine {D} = {D_t} + {D_m}	*/
+				for (i=1; i<=DoF; i++) {
+					if (q[i])	D[i] += dD[i];
+					else {		D[i]  = Dp[lc][i]; dD[i] = 0.0; }
+				}
+				/* combine {R} = {R_t} + {R_m} --- for linear systems */
+				for (i=1; i<=DoF; i++) if (r[i]) R[i] += dR[i];
 			}
-			/* combine {R} = {R_t} + {R_m} --- for linear systems */
-			for (i=1; i<=DoF; i++)	if (r[i]) R[i] += dR[i];
-		}
 
 
-		/*  combine {F} = {F_t} + {F_m} */
-		for (i=1; i<=DoF; i++)	F[i] = F_temp[lc][i] + F_mech[lc][i];
+			/*  combine {F} = {F_t} + {F_m} */
+			for (i=1; i<=DoF; i++)	F[i] = F_temp[lc][i] + F_mech[lc][i];
 
-		/*  element forces {Q} for displacements {D}	*/
-		element_end_forces ( Q, nE, xyz, L, Le, N1,N2,
-				Ax, Asy,Asz, Jx,Iy,Iz, E,G, p,
-				eqF_temp[lc], eqF_mech[lc], D, shear, geom,
-				&axial_strain_warning );
+			/*  element forces {Q} for displacements {D}	*/
+			element_end_forces ( Q, nE, xyz, L, Le, N1,N2,
+					Ax, Asy,Asz, Jx,Iy,Iz, E,G, p,
+					eqF_temp[lc], eqF_mech[lc], D, shear, geom,
+					&axial_strain_warning );
 
-		/*  check the equilibrium error	*/
-		error = equilibrium_error ( dF, F, K, D, DoF, q,r );
-
-		if ( geom && verbose )
-			fprintf(stdout,"\n Non-Linear Elastic Analysis ...\n");
-
-/*
- * 		if ( geom ) { // initialize Broyden secant stiffness matrix, Ks
- *			Ks  = dmatrix( 1, DoF, 1, DoF );
- *			for (i=1;i<=DoF;i++) {
- *				for(j=i;j<=DoF;j++) {
- *					Ks[i][j]=Ks[j][i]=K[i][j];
- *				}
- *			}
- *		}
- */
-
-		/* quasi Newton-Raphson iteration for geometric nonlinearity  */
-		if (geom) { error = 1.0; ok = 0; iter = 0; } /* re-initialize */
-		while ( geom && error > tol && iter < 500 && ok >= 0) {
-
-			++iter;
-
-			/*  assemble stiffness matrix [K({D}^(i))]	      */
-			assemble_K ( K, DoF, nE, xyz, rj, L, Le, N1, N2,
-				Ax,Asy,Asz, Jx,Iy,Iz, E, G, p,
-				shear,geom, Q, debug );
-
-			/*  compute equilibrium error, {dF}, at iteration i   */
-			/*  {dF}^(i) = {F} - [K({D}^(i))]*{D}^(i)	      */
-			/*  convergence criteria = || {dF}^(i) ||  /  || F || */
+			/*  check the equilibrium error	*/
 			error = equilibrium_error ( dF, F, K, D, DoF, q,r );
 
-			/*  Powell-Symmetric-Broyden secant stiffness update  */
-			// PSB_update ( Ks, dF, dD, DoF );  /* not helpful?   */
+			if ( geom && verbose )
+				fprintf(stdout,"\n Non-Linear Elastic Analysis ...\n");
 
-			/*  solve {dF}^(i) = [K({D}^(i))] * {dD}^(i)	      */
-			solve_system(K,dD,dF,dR,DoF,q,r,&ok,verbose,&rms_resid);
-
-			if ( ok < 0 ) {	/*  K is not positive definite	      */
-				fprintf(stderr,"   The stiffness matrix is not pos-def. \n");
-				fprintf(stderr,"   Reduce loads and re-run the analysis.\n");
-				ExitCode = 181;
-				break;
-			}
-
-			/*  increment {D}^(i+1) = {D}^(i) + {dD}^(i)	      */
-			for (i=1; i<=DoF; i++)	if ( q[i] )	D[i] += dD[i];
-
-			/*  element forces {Q} for displacements {D}^(i)      */
-			element_end_forces ( Q, nE, xyz, L, Le, N1,N2,
-				Ax, Asy,Asz, Jx,Iy,Iz, E,G, p,
-				eqF_temp[lc], eqF_mech[lc], D, shear, geom,
-				&axial_strain_warning );
-
-			if ( verbose ) { /*  display equilibrium error        */
-			 fprintf(stdout,"   NR iteration %3d ---", iter);
-			 fprintf(stdout," RMS relative equilibrium error = %8.2e \n",error);
-			}
-		}			/* end quasi Newton-Raphson iteration */
-
-
-		/*   strain limit failure ... */
-		if (axial_strain_warning > 0 && ExitCode == 0)   ExitCode = 182;
-		/*   strain limit _and_ buckling failure ... */
-		if (axial_strain_warning > 0 && ExitCode == 181) ExitCode = 183;
-
- 		if ( geom )	compute_reaction_forces( R,F,K, D, DoF, r );
-
-		/*  dealocate Broyden secant stiffness matrix, Ks */
-		// if ( geom )	free_dmatrix(Ks, 1, DoF, 1, DoF );
-
-		if ( write_matrix )	/* write static stiffness matrix */
-			save_ut_dmatrix ( "Ks", K, DoF, "w" );
-
-		/*  display RMS equilibrium error */
-		if ( verbose && ok >= 0 ) evaluate ( error, rms_resid, tol );
-
- 		write_static_results ( fp, nN,nE,nL, lc, DoF, N1,N2,
-				F,D,R, r,Q, rms_resid, ok, axial_sign );
-
-		if ( filetype == 1 ) {		// .CSV format output
-			write_static_csv(OUT_file, title,
-			    nN,nE,nL,lc, DoF, N1,N2, F,D,R, r,Q, error, ok );
-		}
-
-		if ( filetype == 2 ) {		// .m matlab format output
-			write_static_mfile (OUT_file, title, nN,nE,nL,lc, DoF,
-					N1,N2, F,D,R, r,Q, error, ok );
-		}
-
-/*
- *		if ( verbose )
- *		 printf("\n   If the program pauses here for very long,"
- *		 " hit CTRL-C to stop execution, \n"
- *		 "    reduce exagg_static in the Input Data,"
- *		 " and re-run the analysis. \n");
+	/*
+	 * 		if ( geom ) { // initialize Broyden secant stiffness matrix, Ks
+	 *			Ks  = dmatrix( 1, DoF, 1, DoF );
+	 *			for (i=1;i<=DoF;i++) {
+	 *				for(j=i;j<=DoF;j++) {
+	 *					Ks[i][j]=Ks[j][i]=K[i][j];
+	 *				}
+	 *			}
+	 *		}
  */
 
-		write_internal_forces ( OUT_file, fp, infcpath, lc, nL, title, dx, xyz,
-					Q, nN, nE, L, N1, N2,
-					Ax, Asy, Asz, Jx, Iy, Iz, E, G, p,
-					d, gX[lc], gY[lc], gZ[lc],
-					nU[lc],U[lc],nW[lc],W[lc],nP[lc],P[lc],
-					D, shear, error );
+			/* quasi Newton-Raphson iteration for geometric nonlinearity  */
+			if (geom) { error = 1.0; ok = 0; iter = 0; } /* re-initialize */
+			while ( geom && error > tol && iter < 500 && ok >= 0) {
+				++iter;
 
-		static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
-					nN, nE, nL, lc, DoF,
-					xyz, L, N1,N2, p, D,
-					exagg_static, D3_flag, anlyz,
-					dx, scale, load_cases, frame );
+				/*  assemble stiffness matrix [K({D}^(i))]	      */
+				assemble_K ( K, DoF, nE, xyz, rj, L, Le, N1, N2,
+					Ax,Asy,Asz, Jx,Iy,Iz, E, G, p,
+					shear,geom, Q, debug );
 
-	 } /* end load case loop */
+				/*  compute equilibrium error, {dF}, at iteration i   */
+				/*  {dF}^(i) = {F} - [K({D}^(i))]*{D}^(i)	      */
+				/*  convergence criteria = || {dF}^(i) ||  /  || F || */
+				error = equilibrium_error ( dF, F, K, D, DoF, q,r );
+
+				/*  Powell-Symmetric-Broyden secant stiffness update  */
+				// PSB_update ( Ks, dF, dD, DoF );  /* not helpful?   */
+
+				/*  solve {dF}^(i) = [K({D}^(i))] * {dD}^(i)	      */
+				solve_system(K,dD,dF,dR,DoF,q,r,&ok,verbose,&rms_resid);
+
+				if ( ok < 0 ) {	/*  K is not positive definite	      */
+					fprintf(stderr,"   The stiffness matrix is not pos-def. \n");
+					fprintf(stderr,"   Reduce loads and re-run the analysis.\n");
+					ExitCode = 181;
+					break;
+				}
+
+				/*  increment {D}^(i+1) = {D}^(i) + {dD}^(i)	      */
+				for (i=1; i<=DoF; i++)	if ( q[i] )	D[i] += dD[i];
+
+				/*  element forces {Q} for displacements {D}^(i)      */
+				element_end_forces ( Q, nE, xyz, L, Le, N1,N2,
+					Ax, Asy,Asz, Jx,Iy,Iz, E,G, p,
+					eqF_temp[lc], eqF_mech[lc], D, shear, geom,
+					&axial_strain_warning );
+
+				if ( verbose ) { /*  display equilibrium error        */
+				 fprintf(stdout,"   NR iteration %3d ---", iter);
+				 fprintf(stdout," RMS relative equilibrium error = %8.2e \n",error);
+				}
+			}			/* end quasi Newton-Raphson iteration */
+
+
+			/*   strain limit failure ... */
+			if (axial_strain_warning > 0 && ExitCode == 0)   ExitCode = 182;
+			/*   strain limit _and_ buckling failure ... */
+			if (axial_strain_warning > 0 && ExitCode == 181) ExitCode = 183;
+
+			if ( geom )	compute_reaction_forces( R,F,K, D, DoF, r );
+
+			/*  dealocate Broyden secant stiffness matrix, Ks */
+			// if ( geom )	free_dmatrix(Ks, 1, DoF, 1, DoF );
+
+			if ( write_matrix )	/* write static stiffness matrix */
+				save_ut_dmatrix ( "Ks", K, DoF, "w" );
+
+			/*  display RMS equilibrium error */
+			if ( verbose && ok >= 0 ) evaluate ( error, rms_resid, tol );
+
+			write_static_results ( fp, nN,nE,nL, lc, DoF, N1,N2,
+					F,D,R, r,Q, rms_resid, ok, axial_sign );
+
+			if ( filetype == 1 ) {		// .CSV format output
+				write_static_csv(OUT_file, title,
+				    nN,nE,nL,lc, DoF, N1,N2, F,D,R, r,Q, error, ok );
+			}
+
+			if ( filetype == 2 ) {		// .m matlab format output
+				write_static_mfile (OUT_file, title, nN,nE,nL,lc, DoF,
+						N1,N2, F,D,R, r,Q, error, ok );
+			}
+
+/*
+ * 			if ( verbose )
+ * 			 printf("\n   If the program pauses here for very long,"
+ * 			 " hit CTRL-C to stop execution, \n"
+ * 			 "    reduce exagg_static in the Input Data,"
+ * 			 " and re-run the analysis. \n");
+ */
+
+			write_internal_forces ( OUT_file, fp, infcpath, lc, nL, title, dx, xyz,
+						Q, nN, nE, L, N1, N2,
+						Ax, Asy, Asz, Jx, Iy, Iz, E, G, p,
+						d, gX[lc], gY[lc], gZ[lc],
+						nU[lc],U[lc],nW[lc],W[lc],nP[lc],P[lc],
+						D, shear, error );
+
+			static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
+						nN, nE, nL, lc, DoF,
+						xyz, L, N1,N2, p, D,
+						exagg_static, D3_flag, anlyz,
+						dx, scale, load_cases, frame );
+
+		} /* end load case loop */
 	} else {		/*  data check only  */
+		if ( verbose ) {	/* display data check only */
+			fprintf(stdout,"\n * %s *\n", title );
+			fprintf(stdout,"  DATA CHECK ONLY.\n");
+		}
 
-	 if ( verbose ) {	/* display data check only */
-	 	fprintf(stdout,"\n * %s *\n", title );
-	 	fprintf(stdout,"  DATA CHECK ONLY.\n");
-	 }
-	 static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
+		static_mesh(
+			IN_file, infcpath, meshpath, plotpath, title,
 			nN, nE, nL, lc, DoF,
 			xyz, L, N1,N2, p, D,
 			exagg_static, D3_flag, anlyz,
-			dx, scale, load_cases, frame );
+			dx, scale, load_cases, frame
+		);
 	}
 
 
@@ -706,7 +713,6 @@ For compilation/installation, see README.txt.
 	fclose (fp);
 
 	if ( nM > 0 && anlyz ) {	/* write modal analysis results */
-
 		modal_mesh ( IN_file, meshpath, modepath, plotpath, title,
 				nN,nE, DoF, nM, xyz, L, N1,N2, p,
 				M, f, V, exagg_modal, D3_flag, anlyz );
