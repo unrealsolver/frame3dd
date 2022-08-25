@@ -360,7 +360,7 @@ void read_node_data( FILE *fp, int nN, vec3 *xyz, float *r, Frame *frame )
 	char	errMsg[MAXL];
 
 	for (i=1;i<=nN;i++) {		/* read node coordinates	*/
-		Node node = frame->nodes.data[i - 1];
+		Node *node = &frame->nodes.data[i - 1];
 		sfrv=fscanf(fp, "%d", &j );
 		if (sfrv != 1) sferr("node number in node data");
 		if ( j <= 0 || j > nN ) {
@@ -373,10 +373,10 @@ void read_node_data( FILE *fp, int nN, vec3 *xyz, float *r, Frame *frame )
 		/* fprintf(stderr,"\nj = %d, pos = (%lf, %lf, %lf), r = %f", j, xyz[j].x, xyz[j].y, xyz[j].z, r[j]); */
 		r[j] = fabs(r[j]);
 
-		node.position.x = xyz[j].x;
-		node.position.y = xyz[j].y;
-		node.position.z = xyz[j].z;
-		node.radius = r[j];
+		node->position.x = xyz[j].x;
+		node->position.y = xyz[j].y;
+		node->position.z = xyz[j].z;
+		node->radius = r[j];
 	}
 	return;
 }
@@ -899,8 +899,8 @@ void read_and_assemble_loads (
 	for (i=1;i<=nE;i++)	for(j=1;j<=12;j++)	Q[i][j] = 0.0;
 
 	for (lc = 1; lc <= nL; lc++) {		/* begin load-case loop */
-	LoadcaseData *load_case = &load_cases[lc];
 
+	LoadcaseData *load_case = &load_cases[lc - 1];
 
 	if ( verbose ) {	/*  display the load case number */
 		textColor('y','g','b','x');
@@ -957,16 +957,22 @@ void read_and_assemble_loads (
 		}
 		printf("\n");
 		*/
-	  }					/* end gravity loads */
+	}					/* end gravity loads */
 
-	  /* node point loads -------------------------------------------- */
-	  sfrv=fscanf(fp,"%d", &nF[lc] );
-	  if (sfrv != 1) sferr("nF value in load data");
-	  if ( verbose ) {
+	/* node point loads -------------------------------------------- */
+	sfrv=fscanf(fp,"%d", &nF[lc] );
+	if (sfrv != 1) sferr("nF value in load data");
+	if ( verbose ) {
 		fprintf(stdout,"  number of loaded nodes ");
-	  	dots(stdout,28);	fprintf(stdout," nF = %3d\n", nF[lc]);
-	  }
-	  for (i=1; i <= nF[lc]; i++) {	/* ! global structural coordinates ! */
+		dots(stdout,28);
+		fprintf(stdout," nF = %3d\n", nF[lc]);
+	}
+
+
+	load_case->loads.point.size = nF[lc];
+	load_case->loads.point.data = (PointLoad *) malloc(sizeof(PointLoad) * nF[lc]);
+
+	for (i=1; i <= nF[lc]; i++) {	/* ! global structural coordinates ! */
 		sfrv=fscanf(fp,"%d", &j);
 		if (sfrv != 1) sferr("node value in point load data");
 		if ( j < 1 || j > nN ) {
@@ -982,6 +988,16 @@ void read_and_assemble_loads (
 
 		if ( F_mech[lc][6*j-5]==0 && F_mech[lc][6*j-4]==0 && F_mech[lc][6*j-3]==0 && F_mech[lc][6*j-2]==0 && F_mech[lc][6*j-1]==0 && F_mech[lc][6*j]==0 )
 		    fprintf(stderr,"\n   Warning: All node loads applied at node %d  are zero\n", j );
+
+		PointLoad *point_load = &load_case->loads.point.data[i - 1];
+		// TODO Use lookup instead of assumption of that nodes are ordered
+		point_load->node_id = j - 1;
+		point_load->force.x = F_mech[lc][6*j-5];
+		point_load->force.y = F_mech[lc][6*j-4];
+		point_load->force.z = F_mech[lc][6*j-3];
+		point_load->momentum.x = F_mech[lc][6*j-2];
+		point_load->momentum.y = F_mech[lc][6*j-1];
+		point_load->momentum.z = F_mech[lc][6*j];
 	}					/* end node point loads  */
 
 	/* uniformly distributed loads --------------------------------- */
@@ -1022,7 +1038,7 @@ void read_and_assemble_loads (
 		    fprintf(stderr,"\n   Warning: All distributed loads applied to frame element %d  are zero\n", n );
 
 		UniformLoad *uniform_load = &load_case->loads.uniform.data[i - 1];
-		uniform_load->node_id = n;
+		uniform_load->edge_id = n;
 		//load_cases[0].loads.uniform[0].node_id = 1;
 		uniform_load->force.x = U[lc][i][2];
 		uniform_load->force.y = U[lc][i][3];

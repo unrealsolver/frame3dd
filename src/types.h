@@ -5,16 +5,28 @@
 #include "microstran/vec3.h"
 
 typedef struct {
-	unsigned int node_id;
 	vec3 force;
+	vec3 momentum;
+	unsigned node_id;
+} PointLoad;
+
+typedef struct {
+	PointLoad *data;
+	unsigned size;
+} PointLoads;
+
+typedef struct {
+	vec3 force;
+	unsigned edge_id;
 } UniformLoad;
 
 typedef struct {
-	unsigned int size;
+	unsigned size;
 	UniformLoad* data;
 } UniformLoads;
 
 typedef struct {
+	PointLoads point;
 	UniformLoads uniform;
 } Loads;
 
@@ -39,17 +51,17 @@ typedef struct {
 } Node;
 
 typedef struct {
-	unsigned int size;
+	unsigned size;
 	Node *data;
 } Nodes;
 
 typedef struct {
-	unsigned int start_node_id;
-	unsigned int end_node_id;
+	unsigned start_node_id;
+	unsigned end_node_id;
 } Edge;
 
 typedef struct {
-	unsigned int size;
+	unsigned size;
 	Edge *data;
 } Edges;
 

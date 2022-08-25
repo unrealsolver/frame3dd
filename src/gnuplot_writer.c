@@ -33,10 +33,10 @@
 
 /*
  * FORCE_BENT_BEAM  -  reads internal frame element forces and deflections
- * from the internal force and deflection data file.  
- * Saves deflected shapes to a file.  These bent shapes are exact. 
+ * from the internal force and deflection data file.
+ * Saves deflected shapes to a file.  These bent shapes are exact.
  * Note: It would not be difficult to adapt this function to plot
- * internal axial force, shear force, torques, or bending moments. 
+ * internal axial force, shear force, torques, or bending moments.
  * 9 Jan 2010
  */
 void force_bent_beam(
@@ -68,7 +68,7 @@ void force_bent_beam(
 //		    printf("x = %12.4f\n", x );		/* debug */
 		    if (sfrv != 11) sferr(fnif);
 		    ++n;
-		} 
+		}
 
 		/* exaggerated deformed shape in global coordinates */
 		dX = exagg * ( t1*Dx + t4*Dy + t7*Dz );
@@ -159,9 +159,9 @@ void cubic_bent_beam(
 	lu_dcmp ( A, 4, b, 0, 1, &pd );		/* solve for cubic coef's */
 
 	// debug ... if deformed mesh exageration is too big, some elements
-	// may not be plotted.  
+	// may not be plotted.
 	//fprintf( fpm, "# u1=%e  L+u7=%e, dx = %e \n",
-	//				u1, fabs(L+u7), fabs(L+u7-u1)/10.0); 
+	//				u1, fabs(L+u7), fabs(L+u7-u1)/10.0);
 	for ( s = u1; fabs(s) <= 1.01*fabs(L+u7); s += fabs(L+u7-u1) / 10.0 ) {
 
 			/* deformed shape in local coordinates */
@@ -187,11 +187,11 @@ void cubic_bent_beam(
 
 
 /*
- * STATIC_MESH  - create mesh data of deformed and undeformed mesh  22 Feb 1999 
- * use gnuplot	
+ * STATIC_MESH  - create mesh data of deformed and undeformed mesh  22 Feb 1999
+ * use gnuplot
  * useful gnuplot options: unset xtics ytics ztics border view key
  * This function illustrates how to read the internal force output data file.
- * The internal force output data file contains all the information required 
+ * The internal force output data file contains all the information required
  * to plot deformed meshes, internal axial force, internal shear force, internal
  * torsion, and internal bending moment diagrams.
  */
@@ -200,9 +200,10 @@ void static_mesh(
 		char infcpath[], char meshpath[], char plotpath[],
 		char *title, int nN, int nE, int nL, int lc, int DoF,
 		vec3 *xyz, double *L,
-		int *N1, int *N2, float *p, double *D, 
+		int *N1, int *N2, float *p, double *D,
 		double exagg_static, int D3_flag, int anlyz, float dx, float scale,
-		LoadcaseData *load_cases
+		LoadcaseData *load_cases,
+		Frame *frame
 ){
 	FILE	*fpif=NULL, *fpm=NULL;
 	double	mx, my, mz; /* coordinates of the frame element number labels */
@@ -224,7 +225,7 @@ void static_mesh(
 
 	// write gnuplot plotting script commands
 
-	for ( j=1; j<=nN; j++ ) { // check for three-dimensional frame 
+	for ( j=1; j<=nN; j++ ) { // check for three-dimensional frame
 		if (xyz[j].x != 0.0) X=1;
 		if (xyz[j].y != 0.0) Y=1;
 		if (xyz[j].z != 0.0) Z=1;
@@ -249,7 +250,7 @@ void static_mesh(
 	    }
 	}
 
-	// file name for deformed mesh data for load case "lc" 
+	// file name for deformed mesh data for load case "lc"
 	if ( lc >= 1 && anlyz )	sprintf( meshfl, "%sf.%03d", meshpath, lc );
 
 	// write header, plot-setup cmds, node label, and element label data
@@ -270,8 +271,8 @@ void static_mesh(
 	 fprintf(fpm,"unset zeroaxis\n");
 	 fprintf(fpm,"unset key\n");
 	 fprintf(fpm,"unset label\n");
-	 fprintf(fpm,"set size ratio -1    # 1:1 2D axis scaling \n");	
-	 fprintf(fpm,"# set view equal xyz # 1:1 3D axis scaling \n");	
+	 fprintf(fpm,"set size ratio -1    # 1:1 2D axis scaling \n");
+	 fprintf(fpm,"# set view equal xyz # 1:1 3D axis scaling \n");
 
  	 fprintf(fpm,"# NODE NUMBER LABELS\n");
 	 for (j=1; j<=nN; j++)
@@ -299,10 +300,10 @@ void static_mesh(
 	 fprintf(fpm,"%c set zlabel 'z'\n", D3 );
 //	 fprintf(fpm,"%c unset label\n", D3 );
 
-	} 
+	}
 
+	LoadcaseData load_case = load_cases[lc - 1];
 	// different plot title for each load case
-	LoadcaseData load_case = load_cases[lc];
 
 	fprintf(fpm,"set title \"%s\\n", title );
 	fprintf(fpm,"analysis file: %s ", IN_file );
@@ -312,8 +313,23 @@ void static_mesh(
 	} else {
 		fprintf(fpm,"  data check only \"\n");
 	}
+	fprintf(fpm, "unset arrow\n");
 	fprintf(fpm,"unset clip; \nset clip one; set clip two\n");
 	fprintf(fpm,"set xyplane 0 \n"); // requires Gnuplot >= 4.6
+
+	// Draw static force arrows
+	for (unsigned i = 0; i < load_case.loads.point.size; i++) {
+		PointLoad point_load = load_case.loads.point.data[i];
+		fprintf(stdout, "%d\n", point_load.node_id);
+		Node node = frame->nodes.data[point_load.node_id];
+		fprintf(stdout, "-- %d\n", i);
+		fprintf(stdout, "++ %d\n", point_load.node_id);
+		fprintf(
+			fpm, "set arrow from %f, %f, %f rto %f, %f, %f \n",
+			node.position.x, node.position.y, node.position.z,
+			point_load.force.x, point_load.force.y, point_load.force.z
+		);
+	}
 
 	// 2D plot command
 
@@ -366,7 +382,7 @@ void static_mesh(
 
 	// write deformed mesh data
 
-	// open the deformed mesh data file for writing 
+	// open the deformed mesh data file for writing
 	if ((fpm = fopen (meshfl, "w")) == NULL) {
 		sprintf (errMsg,"\n  error: cannot open gnuplot deformed mesh data file %s \n", meshfl );
 		errorMsg(errMsg);
@@ -381,10 +397,10 @@ void static_mesh(
 	fprintf(fpm,"# D E F O R M E D   M E S H   D A T A ");
 	fprintf(fpm,"  deflection exaggeration: %.1f\n", exagg_static );
 	fprintf(fpm,"#       X-dsp        Y-dsp        Z-dsp\n");
-	
-	// open the interior force data file for reading 
+
+	// open the interior force data file for reading
 	if ( dx > 0.0 && anlyz ) {
-	 // file name for internal force data for load case "lc" 
+	 // file name for internal force data for load case "lc"
 	 sprintf( fnif, "%s%02d", infcpath, lc );
 	 if ((fpif = fopen (fnif, "r")) == NULL) {
           sprintf (errMsg,"\n  error: cannot open interior force data file: %s \n",fnif);
@@ -395,13 +411,13 @@ void static_mesh(
 
 	for (m=1; m<=nE; m++) {	// write deformed shape data for each element
 
-		ch = 'a'; 
+		ch = 'a';
 
 		fprintf( fpm, "\n# element %5d \n", m );
 		if ( dx < 0.0 && anlyz ) {
 			cubic_bent_beam ( fpm,
 				N1[m],N2[m], xyz, L[m],p[m], D, exagg_static );
-		} 
+		}
 		if ( dx > 0.0 && anlyz ) {
 			while ( ch != '@' )	ch = getc(fpif);
 			sfrv=fscanf(fpif,"%d %d %d %f %f %f %f %f %f %d",
@@ -411,11 +427,11 @@ void static_mesh(
 			 fprintf(stderr," error in static_mesh parsing\n");
 			 fprintf(stderr,"  frel = %d; m = %d; nx = %d \n", frel,m,nx );
 			}
-			/* debugging ... check mesh data 
+			/* debugging ... check mesh data
 			printf("  frel = %3d; m = %3d; n1 =%4d; n2 = %4d; nx = %3d L = %f \n", frel,m,n1,n2,nx,L[m] );
 			*/
 			while ( ch != '~' )	ch = getc(fpif);
-			force_bent_beam ( fpm, fpif, fnif, nx, 
+			force_bent_beam ( fpm, fpif, fnif, nx,
 				N1[m],N2[m], xyz, L[m],p[m], D, exagg_static );
 		}
 
@@ -530,6 +546,7 @@ void modal_mesh(
 		}
 
 		fprintf(fpm,"set title '%s     mode %d     %lf Hz'\n",IN_file,m,f[m]);
+		fprintf(fpm, "unset arrow\n");
 
 		// 2D plot command
 
@@ -537,7 +554,7 @@ void modal_mesh(
 		if (!anlyz) fprintf(fpm," lw %d lt 1 \n", lw );
 		else fprintf(fpm," lw 1 lt 5 , '%s' u 1:2 t 'mode-shape %d' w l lw %d lt 3\n", modefl, m, lw );
 
-		// 3D plot command 
+		// 3D plot command
 
 		fprintf(fpm,"%c splot '%s' u 2:3:4 t 'undeformed mesh' w l ",
 								D3, meshpath);
@@ -568,7 +585,7 @@ void animate(
 	int nN, int nE, int DoF, int nM,
 	vec3 *xyz, double *L, float *p,
 	int *J1, int *J2, double *f, double **V,
-	double exagg_modal, int D3_flag, 
+	double exagg_modal, int D3_flag,
 	float pan,		/* pan rate for animation	     */
 	float scale		/* inital zoom scale in 3D animation */
 ){
@@ -634,11 +651,11 @@ void animate(
 	 if ( i==1 ) {
 
 	   fprintf(fpm,"\n# --- M O D E   S H A P E   A N I M A T I O N ---\n");
-	   fprintf(fpm,"# rot_x_init  = %7.2f\n", rot_x_init ); 
-	   fprintf(fpm,"# rot_x_final = %7.2f\n", rot_x_final ); 
-	   fprintf(fpm,"# rot_z_init  = %7.2f\n", rot_z_init ); 
-	   fprintf(fpm,"# rot_z_final = %7.2f\n", rot_z_final ); 
-	   fprintf(fpm,"# zoom_init   = %7.2f\n", zoom_init ); 
+	   fprintf(fpm,"# rot_x_init  = %7.2f\n", rot_x_init );
+	   fprintf(fpm,"# rot_x_final = %7.2f\n", rot_x_final );
+	   fprintf(fpm,"# rot_z_init  = %7.2f\n", rot_z_init );
+	   fprintf(fpm,"# rot_z_final = %7.2f\n", rot_z_final );
+	   fprintf(fpm,"# zoom_init   = %7.2f\n", zoom_init );
 	   fprintf(fpm,"# zoom_final  = %7.2f\n", zoom_init );
 	   fprintf(fpm,"# pan rate    = %7.2f \n", pan );
 	   fprintf(fpm,"set autoscale\n");
@@ -682,13 +699,14 @@ void animate(
 	   fprintf(fpm,"unset xzeroaxis; unset yzeroaxis; unset zzeroaxis\n");
 	   fprintf(fpm,"unset xtics; unset ytics; unset ztics; \n");
 	   fprintf(fpm,"%c set view 60, 70, %5.2f \n", D3, scale );
-	   fprintf(fpm,"set size ratio -1    # 1:1 2D axis scaling \n");	
+	   fprintf(fpm,"set size ratio -1    # 1:1 2D axis scaling \n");
 	   fprintf(fpm,"%c set view equal xyz # 1:1 3D axis scaling \n", D3 );
 
 	 }
 
 	 fprintf(fpm,"pause -1 \n");
 	 fprintf(fpm,"set title '%s     mode %d      %lf Hz'\n",IN_file,m,f[m]);
+	fprintf(fpm, "unset arrow\n");
 
 	 frame_number = 0;
 	 total_frames = 2*CYCLES*frames;

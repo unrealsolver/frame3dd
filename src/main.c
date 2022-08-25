@@ -305,6 +305,7 @@ For compilation/installation, see README.txt.
 	p   =  vector(1,nE);	/* element rotation angle about local x axis */
 	d   =  vector(1,nE);	/* element mass density			*/
 
+	// TODO read to Frame
 	read_frame_element_data( fp, nN, nE, xyz,rj, L, Le, N1, N2,
 					Ax, Asy, Asz, Jx, Iy, Iz, E, G, p, d );
 	if ( verbose) 	fprintf(stdout," ... complete\n");
@@ -333,6 +334,10 @@ For compilation/installation, see README.txt.
 	}
 
 	load_cases = (LoadcaseData *) malloc(sizeof(LoadcaseData) * nL);
+	for (unsigned i = 0; i < nL; i++) {
+		load_cases[i].loads.point.size = 0;
+		load_cases[i].loads.uniform.size = 0;
+	}
 
 	U   =  D3matrix(1,nL,1,nE,1,4);    /* uniform load on each member */
 	W   =  D3matrix(1,nL,1,10*nE,1,13);/* trapezoidal load on each member */
@@ -628,7 +633,7 @@ For compilation/installation, see README.txt.
 					nN, nE, nL, lc, DoF,
 					xyz, L, N1,N2, p, D,
 					exagg_static, D3_flag, anlyz,
-					dx, scale, load_cases );
+					dx, scale, load_cases, frame );
 
 	 } /* end load case loop */
 	} else {		/*  data check only  */
@@ -640,7 +645,8 @@ For compilation/installation, see README.txt.
 	 static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
 			nN, nE, nL, lc, DoF,
 			xyz, L, N1,N2, p, D,
-			exagg_static, D3_flag, anlyz, dx, scale, load_cases );
+			exagg_static, D3_flag, anlyz,
+			dx, scale, load_cases, frame );
 	}
 
 

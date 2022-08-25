@@ -32,8 +32,8 @@
 /*
  * FORCE_BENT_BEAM
  * 	reads internal frame element forces and deflections
- * 	from the internal force and deflection data file.  
- *	Saves deflected shapes to a file.  These bent shapes are exact. 
+ * 	from the internal force and deflection data file.
+ *	Saves deflected shapes to a file.  These bent shapes are exact.
  */
 void force_bent_beam(
 	FILE *fpm,	/**< deformed mesh data file pointer	*/
@@ -79,7 +79,8 @@ void static_mesh(
 	vec3 *xyz, double *L,
 	int *N1, int *N2, float *p, double *D,
 	double exagg_static, int D3_flag, int anlyz, float dx, float scale,
-    LoadcaseData *load_cases
+	LoadcaseData *load_cases,
+	Frame *frame
 );
 
 
