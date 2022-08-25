@@ -237,69 +237,70 @@ void static_mesh(
 	}
 
 	if (lc <= 1) {	// open plotting script file for writing
-	    if ((fpm = fopen (plotpath, "w")) == NULL) {
-		sprintf (errMsg,"\n  error: cannot open gnuplot script file: %s \n", plotpath);
-		errorMsg(errMsg);
-		exit(23);
-	    }
+		if ((fpm = fopen (plotpath, "w")) == NULL) {
+			sprintf (errMsg,"\n  error: cannot open gnuplot script file: %s \n", plotpath);
+			errorMsg(errMsg);
+			exit(23);
+		}
 	} else {	// open plotting script file for appending
-	    if ((fpm = fopen (plotpath, "a")) == NULL) {
-		sprintf (errMsg,"\n  error: cannot open gnuplot script file: %s \n", plotpath);
-		errorMsg(errMsg);
-		exit(24);
-	    }
+		if ((fpm = fopen (plotpath, "a")) == NULL) {
+			sprintf (errMsg,"\n  error: cannot open gnuplot script file: %s \n", plotpath);
+			errorMsg(errMsg);
+			exit(24);
+		}
 	}
 
 	// file name for deformed mesh data for load case "lc"
-	if ( lc >= 1 && anlyz )	sprintf( meshfl, "%sf.%03d", meshpath, lc );
+	if ( lc >= 1 && anlyz )	{
+		sprintf( meshfl, "%sf.%03d", meshpath, lc );
+	}
 
 	// write header, plot-setup cmds, node label, and element label data
 
 	if (lc <= 1) {	// header & node number & element number labels
+		fprintf(fpm,"# FRAME3DD ANALYSIS RESULTS  http://frame3dd.sf.net/");
+		fprintf(fpm," VERSION %s \n", VERSION);
+		fprintf(fpm,"# %s\n", title );
+		fprintf(fpm,"# %s", ctime(&now) );
+		fprintf(fpm,"# G N U P L O T   S C R I P T   F I L E \n");
+		/* fprintf(fpm,"#  X=%d , Y=%d , Z=%d, D3=%d  \n", X,Y,Z,D3_flag); */
 
-	 fprintf(fpm,"# FRAME3DD ANALYSIS RESULTS  http://frame3dd.sf.net/");
-	 fprintf(fpm," VERSION %s \n", VERSION);
-	 fprintf(fpm,"# %s\n", title );
-	 fprintf(fpm,"# %s", ctime(&now) );
-	 fprintf(fpm,"# G N U P L O T   S C R I P T   F I L E \n");
-	 /* fprintf(fpm,"#  X=%d , Y=%d , Z=%d, D3=%d  \n", X,Y,Z,D3_flag); */
+		fprintf(fpm,"set autoscale\n");
+		fprintf(fpm,"unset border\n");
+		fprintf(fpm,"set pointsize 1.0\n");
+		fprintf(fpm,"set xtics; set ytics; set ztics; \n");
+		fprintf(fpm,"unset zeroaxis\n");
+		fprintf(fpm,"unset key\n");
+		fprintf(fpm,"unset label\n");
+		fprintf(fpm,"set size ratio -1    # 1:1 2D axis scaling \n");
+		fprintf(fpm,"# set view equal xyz # 1:1 3D axis scaling \n");
 
-	 fprintf(fpm,"set autoscale\n");
-	 fprintf(fpm,"unset border\n");
-	 fprintf(fpm,"set pointsize 1.0\n");
-	 fprintf(fpm,"set xtics; set ytics; set ztics; \n");
-	 fprintf(fpm,"unset zeroaxis\n");
-	 fprintf(fpm,"unset key\n");
-	 fprintf(fpm,"unset label\n");
-	 fprintf(fpm,"set size ratio -1    # 1:1 2D axis scaling \n");
-	 fprintf(fpm,"# set view equal xyz # 1:1 3D axis scaling \n");
+		fprintf(fpm,"# NODE NUMBER LABELS\n");
+		for (j=1; j<=nN; j++)
+			fprintf(
+				fpm,"set label ' %d' at %12.4e, %12.4e, %12.4e\n",
+				j, xyz[j].x,xyz[j].y,xyz[j].z );
 
- 	 fprintf(fpm,"# NODE NUMBER LABELS\n");
-	 for (j=1; j<=nN; j++)
-		fprintf(fpm,"set label ' %d' at %12.4e, %12.4e, %12.4e\n",
-					j, xyz[j].x,xyz[j].y,xyz[j].z );
+		fprintf(fpm,"# ELEMENT NUMBER LABELS\n");
+		for (m=1; m<=nE; m++) {
+			n1 = N1[m];	n2 = N2[m];
+			mx = 0.5 * ( xyz[n1].x + xyz[n2].x );
+			my = 0.5 * ( xyz[n1].y + xyz[n2].y );
+			mz = 0.5 * ( xyz[n1].z + xyz[n2].z );
+			fprintf(
+				fpm,"set label ' %d' at %12.4e, %12.4e, %12.4e\n",
+				m, mx, my, mz );
+		}
 
-	 fprintf(fpm,"# ELEMENT NUMBER LABELS\n");
-	 for (m=1; m<=nE; m++) {
-		n1 = N1[m];	n2 = N2[m];
-		mx = 0.5 * ( xyz[n1].x + xyz[n2].x );
-		my = 0.5 * ( xyz[n1].y + xyz[n2].y );
-		mz = 0.5 * ( xyz[n1].z + xyz[n2].z );
-		fprintf(fpm,"set label ' %d' at %12.4e, %12.4e, %12.4e\n",
-								m, mx, my, mz );
-	 }
-
-	 // 3D plot setup commands
-
-	 fprintf(fpm,"%c set parametric\n", D3 );
-	 fprintf(fpm,"%c set view 60, 70, %5.2f \n", D3, scale );
-	 fprintf(fpm,"%c set view equal xyz # 1:1 3D axis scaling \n", D3 );
-	 fprintf(fpm,"%c unset key\n", D3 );
-	 fprintf(fpm,"%c set xlabel 'x'\n", D3 );
-	 fprintf(fpm,"%c set ylabel 'y'\n", D3 );
-	 fprintf(fpm,"%c set zlabel 'z'\n", D3 );
-//	 fprintf(fpm,"%c unset label\n", D3 );
-
+		// 3D plot setup commands
+		fprintf(fpm,"%c set parametric\n", D3 );
+		fprintf(fpm,"%c set view 60, 70, %5.2f \n", D3, scale );
+		fprintf(fpm,"%c set view equal xyz # 1:1 3D axis scaling \n", D3 );
+		fprintf(fpm,"%c unset key\n", D3 );
+		fprintf(fpm,"%c set xlabel 'x'\n", D3 );
+		fprintf(fpm,"%c set ylabel 'y'\n", D3 );
+		fprintf(fpm,"%c set zlabel 'z'\n", D3 );
+		//fprintf(fpm,"%c unset label\n", D3 );
 	}
 
 	LoadcaseData load_case = load_cases[lc - 1];
@@ -333,15 +334,13 @@ void static_mesh(
 
 	// 2D plot command
 
-	fprintf(fpm,"%c plot '%s' u 2:3 t 'undeformed mesh' w lp ",
-								D2, meshpath);
+	fprintf(fpm,"%c plot '%s' u 2:3 t 'undeformed mesh' w lp ", D2, meshpath);
 	if (!anlyz) fprintf(fpm,"lw %d lt 1 pt 6 \n", lw );
 	else fprintf(fpm,"lw 1 lt 5 pt 6, '%s' u 1:2 t 'load case %d of %d' w l lw %d lt 3\n", meshfl, lc, nL, lw );
 
 	// 3D plot command
 
-	fprintf(fpm,"%c splot '%s' u 2:3:4 t 'load case %d of %d' w lp ",
-							D3, meshpath, lc, nL );
+	fprintf(fpm,"%c splot '%s' u 2:3:4 t 'load case %d of %d' w lp ", D3, meshpath, lc, nL );
 	if (!anlyz) fprintf(fpm," lw %d lt 1 pt 6 \n", lw );
 	else fprintf(fpm," lw 1 lt 5 pt 6, '%s' u 1:2:3 t 'load case %d of %d' w l lw %d lt 3\n",meshfl, lc, nL, lw );
 
@@ -353,29 +352,29 @@ void static_mesh(
 
 	if (lc <= 1) {
 	 // open the undeformed mesh data file for writing
-	 if ((fpm = fopen (meshpath, "w")) == NULL) {
-		sprintf (errMsg,"\n  error: cannot open gnuplot undeformed mesh data file: %s\n", meshpath );
-		errorMsg(errMsg);
-		exit(21);
-	 }
+		if ((fpm = fopen (meshpath, "w")) == NULL) {
+			sprintf (errMsg,"\n  error: cannot open gnuplot undeformed mesh data file: %s\n", meshpath );
+			errorMsg(errMsg);
+			exit(21);
+		}
 
-	 fprintf(fpm,"# FRAME3DD ANALYSIS RESULTS  http://frame3dd.sf.net/");
-	 fprintf(fpm," VERSION %s \n", VERSION);
-	 fprintf(fpm,"# %s\n", title );
-	 fprintf(fpm,"# %s", ctime(&now) );
-	 fprintf(fpm,"# U N D E F O R M E D   M E S H   D A T A   (global coordinates)\n");
-	 fprintf(fpm,"# Node        X            Y            Z \n");
+		fprintf(fpm,"# FRAME3DD ANALYSIS RESULTS  http://frame3dd.sf.net/");
+		fprintf(fpm," VERSION %s \n", VERSION);
+		fprintf(fpm,"# %s\n", title );
+		fprintf(fpm,"# %s", ctime(&now) );
+		fprintf(fpm,"# U N D E F O R M E D   M E S H   D A T A   (global coordinates)\n");
+		fprintf(fpm,"# Node        X            Y            Z \n");
 
-	 for (m=1; m<=nE; m++) {
-		n = N1[m];	// i = 6*(n-1);
-		fprintf (fpm,"%5d %12.4e %12.4e %12.4e \n",
-					n , xyz[n].x , xyz[n].y , xyz[n].z );
-		n = N2[m];	// i = 6*(n-1);
-		fprintf (fpm,"%5d %12.4e %12.4e %12.4e",
-					n , xyz[n].x , xyz[n].y , xyz[n].z );
-		fprintf (fpm,"\n\n\n");
-	 }
-	 fclose(fpm);
+		for (m=1; m<=nE; m++) {
+			n = N1[m];	// i = 6*(n-1);
+			fprintf (fpm,"%5d %12.4e %12.4e %12.4e \n",
+						n , xyz[n].x , xyz[n].y , xyz[n].z );
+			n = N2[m];	// i = 6*(n-1);
+			fprintf (fpm,"%5d %12.4e %12.4e %12.4e",
+						n , xyz[n].x , xyz[n].y , xyz[n].z );
+			fprintf (fpm,"\n\n\n");
+		}
+		fclose(fpm);
 	}
 
 	if (!anlyz) return; 	// no deformed mesh
@@ -400,13 +399,13 @@ void static_mesh(
 
 	// open the interior force data file for reading
 	if ( dx > 0.0 && anlyz ) {
-	 // file name for internal force data for load case "lc"
-	 sprintf( fnif, "%s%02d", infcpath, lc );
-	 if ((fpif = fopen (fnif, "r")) == NULL) {
-          sprintf (errMsg,"\n  error: cannot open interior force data file: %s \n",fnif);
-	  errorMsg(errMsg);
-          exit(20);
-	 }
+		// file name for internal force data for load case "lc"
+		sprintf( fnif, "%s%02d", infcpath, lc );
+		if ((fpif = fopen (fnif, "r")) == NULL) {
+			sprintf (errMsg,"\n  error: cannot open interior force data file: %s \n",fnif);
+			errorMsg(errMsg);
+			exit(20);
+		}
 	}
 
 	for (m=1; m<=nE; m++) {	// write deformed shape data for each element

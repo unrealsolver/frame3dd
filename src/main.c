@@ -535,15 +535,15 @@ For compilation/installation, see README.txt.
 			if ( geom && verbose )
 				fprintf(stdout,"\n Non-Linear Elastic Analysis ...\n");
 
-	/*
-	 * 		if ( geom ) { // initialize Broyden secant stiffness matrix, Ks
-	 *			Ks  = dmatrix( 1, DoF, 1, DoF );
-	 *			for (i=1;i<=DoF;i++) {
-	 *				for(j=i;j<=DoF;j++) {
-	 *					Ks[i][j]=Ks[j][i]=K[i][j];
-	 *				}
-	 *			}
-	 *		}
+/*
+ *	 		if ( geom ) { // initialize Broyden secant stiffness matrix, Ks
+ *				Ks  = dmatrix( 1, DoF, 1, DoF );
+ *				for (i=1;i<=DoF;i++) {
+ *					for(j=i;j<=DoF;j++) {
+ *						Ks[i][j]=Ks[j][i]=K[i][j];
+ *					}
+ *				}
+ *			}
  */
 
 			/* quasi Newton-Raphson iteration for geometric nonlinearity  */
