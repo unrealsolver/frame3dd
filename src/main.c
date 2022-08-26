@@ -254,7 +254,7 @@ For compilation/installation, see README.txt.
 	if (sfrv != 1)	sferr("nN value for number of nodes");
 	if ( verbose ) {	/* display nN */
 		fprintf(stdout," number of nodes ");
-		dots(stdout,36);	fprintf(stdout," nN =%4d ",nN);
+		dots(stdout,36); fprintf(stdout," nN =%4d ",nN);
 	}
 
 					/* allocate memory for node data ... */
@@ -262,7 +262,7 @@ For compilation/installation, see README.txt.
 	xyz = (vec3 *)malloc(sizeof(vec3)*(1+nN));	/* node coordinates */
 	frame->nodes.size = nN;
 	// FIXME deallocte
-	frame->nodes.data = (Node *) malloc(sizeof(Node));
+	frame->nodes.data = (Node *) malloc(sizeof(Node) * nN);
 
 	read_node_data ( fp, nN, xyz, rj, frame );
 	if ( verbose )	printf(" ... complete\n");

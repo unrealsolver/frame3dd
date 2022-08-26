@@ -186,6 +186,92 @@ void cubic_bent_beam(
 }
 
 
+/* Part of static_mesh */
+inline void write_header(
+	FILE *fpm, char *title, int nN, int nE,
+	vec3 *xyz, int *N1, int *N2,
+	float scale, char D3, time_t now
+) {
+	int j, m, n1, n2 = 0;
+	double	mx, my, mz; /* coordinates of the frame element number labels */
+	fprintf(fpm,"# FRAME3DD ANALYSIS RESULTS  http://frame3dd.sf.net/");
+	fprintf(fpm," VERSION %s \n", VERSION);
+	fprintf(fpm,"# %s\n", title );
+	fprintf(fpm,"# %s", ctime(&now) );
+	fprintf(fpm,"# G N U P L O T   S C R I P T   F I L E \n");
+	/* fprintf(fpm,"#  X=%d , Y=%d , Z=%d, D3=%d  \n", X,Y,Z,D3_flag); */
+
+	fprintf(fpm,"set autoscale\n");
+	fprintf(fpm,"unset border\n");
+	fprintf(fpm,"set pointsize 1.0\n");
+	fprintf(fpm,"set xtics; set ytics; set ztics; \n");
+	fprintf(fpm,"unset zeroaxis\n");
+	fprintf(fpm,"unset key\n");
+	fprintf(fpm,"unset label\n");
+	fprintf(fpm,"set size ratio -1    # 1:1 2D axis scaling \n");
+	fprintf(fpm,"# set view equal xyz # 1:1 3D axis scaling \n");
+
+	fprintf(fpm,"# NODE NUMBER LABELS\n");
+	for (j=1; j<=nN; j++)
+		fprintf(
+			fpm,"set label ' %d' at %12.4e, %12.4e, %12.4e\n",
+			j, xyz[j].x,xyz[j].y,xyz[j].z );
+
+	fprintf(fpm,"# ELEMENT NUMBER LABELS\n");
+	for (m=1; m<=nE; m++) {
+		n1 = N1[m];	n2 = N2[m];
+		mx = 0.5 * ( xyz[n1].x + xyz[n2].x );
+		my = 0.5 * ( xyz[n1].y + xyz[n2].y );
+		mz = 0.5 * ( xyz[n1].z + xyz[n2].z );
+		fprintf(
+			fpm,"set label ' %d' at %12.4e, %12.4e, %12.4e\n",
+			m, mx, my, mz );
+	}
+
+	// 3D plot setup commands
+	fprintf(fpm,"%c set parametric\n", D3 );
+	fprintf(fpm,"%c set view 60, 70, %5.2f \n", D3, scale );
+	fprintf(fpm,"%c set view equal xyz # 1:1 3D axis scaling \n", D3 );
+	fprintf(fpm,"%c unset key\n", D3 );
+	fprintf(fpm,"%c set xlabel 'x'\n", D3 );
+	fprintf(fpm,"%c set ylabel 'y'\n", D3 );
+	fprintf(fpm,"%c set zlabel 'z'\n", D3 );
+	//fprintf(fpm,"%c unset label\n", D3 );
+}
+
+/* Part of static_mesh */
+inline void writer_undeformed_mesh(
+	char meshpath[], FILE *fpm, char *title, int nE,
+	vec3 *xyz, int *N1, int *N2,
+	time_t now, char *errMsg
+) {
+	int m, n;
+	// open the undeformed mesh data file for writing
+	if ((fpm = fopen (meshpath, "w")) == NULL) {
+		sprintf(errMsg,"\n  error: cannot open gnuplot undeformed mesh data file: %s\n", meshpath );
+		errorMsg(errMsg);
+		exit(21);
+	}
+
+	fprintf(fpm,"# FRAME3DD ANALYSIS RESULTS  http://frame3dd.sf.net/");
+	fprintf(fpm," VERSION %s \n", VERSION);
+	fprintf(fpm,"# %s\n", title );
+	fprintf(fpm,"# %s", ctime(&now) );
+	fprintf(fpm,"# U N D E F O R M E D   M E S H   D A T A   (global coordinates)\n");
+	fprintf(fpm,"# Node        X            Y            Z \n");
+
+	for (m=1; m<=nE; m++) {
+		n = N1[m];	// i = 6*(n-1);
+		fprintf (fpm,"%5d %12.4e %12.4e %12.4e \n",
+					n , xyz[n].x , xyz[n].y , xyz[n].z );
+		n = N2[m];	// i = 6*(n-1);
+		fprintf (fpm,"%5d %12.4e %12.4e %12.4e",
+					n , xyz[n].x , xyz[n].y , xyz[n].z );
+		fprintf (fpm,"\n\n\n");
+	}
+	fclose(fpm);
+}
+
 /*
  * STATIC_MESH  - create mesh data of deformed and undeformed mesh  22 Feb 1999
  * use gnuplot
@@ -206,7 +292,6 @@ void static_mesh(
 		Frame *frame
 ){
 	FILE	*fpif=NULL, *fpm=NULL;
-	double	mx, my, mz; /* coordinates of the frame element number labels */
 	char	fnif[FILENMAX], meshfl[FILENMAX],
 		D2='#', D3='#',	/* indicates plotting in 2D or 3D	*/
 		errMsg[MAXL],
@@ -218,7 +303,7 @@ void static_mesh(
 		x2, y2, z2;	/* coordinates of node n2		*/
 	int	j=0, m=0, n=0,
 		X=0, Y=0, Z=0,
-		lw = 1;		/*  line width of deformed mesh		*/
+		lw = 1;		/* line width of deformed mesh		*/
 	time_t  now;		/* modern time variable type		*/
 
 	(void) time(&now);
@@ -258,54 +343,10 @@ void static_mesh(
 	// write header, plot-setup cmds, node label, and element label data
 
 	if (lc <= 1) {	// header & node number & element number labels
-		fprintf(fpm,"# FRAME3DD ANALYSIS RESULTS  http://frame3dd.sf.net/");
-		fprintf(fpm," VERSION %s \n", VERSION);
-		fprintf(fpm,"# %s\n", title );
-		fprintf(fpm,"# %s", ctime(&now) );
-		fprintf(fpm,"# G N U P L O T   S C R I P T   F I L E \n");
-		/* fprintf(fpm,"#  X=%d , Y=%d , Z=%d, D3=%d  \n", X,Y,Z,D3_flag); */
-
-		fprintf(fpm,"set autoscale\n");
-		fprintf(fpm,"unset border\n");
-		fprintf(fpm,"set pointsize 1.0\n");
-		fprintf(fpm,"set xtics; set ytics; set ztics; \n");
-		fprintf(fpm,"unset zeroaxis\n");
-		fprintf(fpm,"unset key\n");
-		fprintf(fpm,"unset label\n");
-		fprintf(fpm,"set size ratio -1    # 1:1 2D axis scaling \n");
-		fprintf(fpm,"# set view equal xyz # 1:1 3D axis scaling \n");
-
-		fprintf(fpm,"# NODE NUMBER LABELS\n");
-		for (j=1; j<=nN; j++)
-			fprintf(
-				fpm,"set label ' %d' at %12.4e, %12.4e, %12.4e\n",
-				j, xyz[j].x,xyz[j].y,xyz[j].z );
-
-		fprintf(fpm,"# ELEMENT NUMBER LABELS\n");
-		for (m=1; m<=nE; m++) {
-			n1 = N1[m];	n2 = N2[m];
-			mx = 0.5 * ( xyz[n1].x + xyz[n2].x );
-			my = 0.5 * ( xyz[n1].y + xyz[n2].y );
-			mz = 0.5 * ( xyz[n1].z + xyz[n2].z );
-			fprintf(
-				fpm,"set label ' %d' at %12.4e, %12.4e, %12.4e\n",
-				m, mx, my, mz );
-		}
-
-		// 3D plot setup commands
-		fprintf(fpm,"%c set parametric\n", D3 );
-		fprintf(fpm,"%c set view 60, 70, %5.2f \n", D3, scale );
-		fprintf(fpm,"%c set view equal xyz # 1:1 3D axis scaling \n", D3 );
-		fprintf(fpm,"%c unset key\n", D3 );
-		fprintf(fpm,"%c set xlabel 'x'\n", D3 );
-		fprintf(fpm,"%c set ylabel 'y'\n", D3 );
-		fprintf(fpm,"%c set zlabel 'z'\n", D3 );
-		//fprintf(fpm,"%c unset label\n", D3 );
+		write_header(fpm, title, nN, nE, xyz, N1, N2, scale, D3, now);
 	}
 
-	LoadcaseData load_case = load_cases[lc - 1];
 	// different plot title for each load case
-
 	fprintf(fpm,"set title \"%s\\n", title );
 	fprintf(fpm,"analysis file: %s ", IN_file );
 	if ( anlyz ) {
@@ -314,70 +355,50 @@ void static_mesh(
 	} else {
 		fprintf(fpm,"  data check only \"\n");
 	}
-	fprintf(fpm, "unset arrow\n");
 	fprintf(fpm,"unset clip; \nset clip one; set clip two\n");
 	fprintf(fpm,"set xyplane 0 \n"); // requires Gnuplot >= 4.6
+	fprintf(fpm, "unset arrow\n");
+
+	if (lc == 0) {
+		fprintf(stderr, "Panic. load_case index is negative\n");
+		// TODO code?
+		exit(255);
+	}
+
+	LoadcaseData load_case = load_cases[lc - 1];
 
 	// Draw static force arrows
 	for (unsigned i = 0; i < load_case.loads.point.size; i++) {
 		PointLoad point_load = load_case.loads.point.data[i];
-		fprintf(stdout, "%d\n", point_load.node_id);
 		Node node = frame->nodes.data[point_load.node_id];
-		fprintf(stdout, "-- %d\n", i);
-		fprintf(stdout, "++ %d\n", point_load.node_id);
 		fprintf(
-			fpm, "set arrow from %f, %f, %f rto %f, %f, %f \n",
+			fpm, "set arrow %d from %f, %f, %f rto %f, %f, %f lw 2\n",
+			i + 1,
 			node.position.x, node.position.y, node.position.z,
 			point_load.force.x, point_load.force.y, point_load.force.z
 		);
 	}
 
 	// 2D plot command
-
 	fprintf(fpm,"%c plot '%s' u 2:3 t 'undeformed mesh' w lp ", D2, meshpath);
 	if (!anlyz) fprintf(fpm,"lw %d lt 1 pt 6 \n", lw );
 	else fprintf(fpm,"lw 1 lt 5 pt 6, '%s' u 1:2 t 'load case %d of %d' w l lw %d lt 3\n", meshfl, lc, nL, lw );
 
 	// 3D plot command
-
 	fprintf(fpm,"%c splot '%s' u 2:3:4 t 'load case %d of %d' w lp ", D3, meshpath, lc, nL );
 	if (!anlyz) fprintf(fpm," lw %d lt 1 pt 6 \n", lw );
 	else fprintf(fpm," lw 1 lt 5 pt 6, '%s' u 1:2:3 t 'load case %d of %d' w l lw %d lt 3\n",meshfl, lc, nL, lw );
 
-	if ( lc < nL && anlyz )	fprintf(fpm,"pause -1\n");
+	if ( lc < nL && anlyz ) fprintf(fpm, "pause -1\n");
 
 	fclose(fpm);
 
 	// write undeformed mesh data
-
 	if (lc <= 1) {
-	 // open the undeformed mesh data file for writing
-		if ((fpm = fopen (meshpath, "w")) == NULL) {
-			sprintf (errMsg,"\n  error: cannot open gnuplot undeformed mesh data file: %s\n", meshpath );
-			errorMsg(errMsg);
-			exit(21);
-		}
-
-		fprintf(fpm,"# FRAME3DD ANALYSIS RESULTS  http://frame3dd.sf.net/");
-		fprintf(fpm," VERSION %s \n", VERSION);
-		fprintf(fpm,"# %s\n", title );
-		fprintf(fpm,"# %s", ctime(&now) );
-		fprintf(fpm,"# U N D E F O R M E D   M E S H   D A T A   (global coordinates)\n");
-		fprintf(fpm,"# Node        X            Y            Z \n");
-
-		for (m=1; m<=nE; m++) {
-			n = N1[m];	// i = 6*(n-1);
-			fprintf (fpm,"%5d %12.4e %12.4e %12.4e \n",
-						n , xyz[n].x , xyz[n].y , xyz[n].z );
-			n = N2[m];	// i = 6*(n-1);
-			fprintf (fpm,"%5d %12.4e %12.4e %12.4e",
-						n , xyz[n].x , xyz[n].y , xyz[n].z );
-			fprintf (fpm,"\n\n\n");
-		}
-		fclose(fpm);
+		writer_undeformed_mesh(meshpath, fpm, title, nE, xyz, N1, N2, now, errMsg);
 	}
 
-	if (!anlyz) return; 	// no deformed mesh
+	if (!anlyz) return; // no deformed mesh
 
 	// write deformed mesh data
 
@@ -408,8 +429,7 @@ void static_mesh(
 		}
 	}
 
-	for (m=1; m<=nE; m++) {	// write deformed shape data for each element
-
+	for (m=1; m<=nE; m++) { // write deformed shape data for each element
 		ch = 'a';
 
 		fprintf( fpm, "\n# element %5d \n", m );

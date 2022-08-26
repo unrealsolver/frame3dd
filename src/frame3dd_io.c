@@ -998,14 +998,14 @@ void read_and_assemble_loads (
 		point_load->momentum.x = F_mech[lc][6*j-2];
 		point_load->momentum.y = F_mech[lc][6*j-1];
 		point_load->momentum.z = F_mech[lc][6*j];
-	}					/* end node point loads  */
+	}	/* end node point loads  */
 
 	/* uniformly distributed loads --------------------------------- */
 	sfrv=fscanf(fp,"%d", &nU[lc] );
 	if (sfrv != 1) sferr("nU value in uniform load data");
 	if ( verbose ) {
 		fprintf(stdout,"  number of uniformly distributed loads ");
-		dots(stdout,13);	fprintf(stdout," nU = %3d\n", nU[lc]);
+		dots(stdout,13); fprintf(stdout," nU = %3d\n", nU[lc]);
 	}
 	if ( nU[lc] < 0 || nU[lc] > nE ) {
 		fprintf(stderr,"  number of uniformly distributed loads ");
@@ -1017,16 +1017,18 @@ void read_and_assemble_loads (
 	}
 
 	load_case->loads.uniform.size = nU[lc];
-	for (lc = 0; lc < nL; lc++)
-		load_cases[lc].loads.uniform.data = (UniformLoad *) malloc(sizeof(UniformLoad) * nU[lc]);
+	// Allocate space for uniform load data
+	for (i = 0; i < nL; i++) {
+		load_cases[i].loads.uniform.data = (UniformLoad *) malloc(sizeof(UniformLoad) * nU[i]);
+	}
 
 	for (i=1; i <= nU[lc]; i++) {	/* ! local element coordinates ! */
 		sfrv=fscanf(fp,"%d", &n );
 		if (sfrv != 1) sferr("frame element number in uniform load data");
 		if ( n < 1 || n > nE ) {
-		    sprintf(errMsg,"\n  error in uniform distributed loads: element number %d is out of range\n",n);
-		    errorMsg(errMsg);
-		    exit(132);
+			sprintf(errMsg,"\n  error in uniform distributed loads: element number %d is out of range\n", n);
+			errorMsg(errMsg);
+			exit(132);
 		}
 		U[lc][i][1] = (double) n;
 		for (l=2; l<=4; l++) {
@@ -1039,7 +1041,6 @@ void read_and_assemble_loads (
 
 		UniformLoad *uniform_load = &load_case->loads.uniform.data[i - 1];
 		uniform_load->edge_id = n;
-		//load_cases[0].loads.uniform[0].node_id = 1;
 		uniform_load->force.x = U[lc][i][2];
 		uniform_load->force.y = U[lc][i][3];
 		uniform_load->force.z = U[lc][i][4];
