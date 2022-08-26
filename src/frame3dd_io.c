@@ -788,13 +788,14 @@ void getline_no_comment (
  * 29 Dec 2009
  */
 void read_reaction_data (
-	FILE *fp, int DoF, int nN, int *nR, int *q, int *r, int *sumR, int verbose
+	FILE *fp, int DoF, int nN, int *nR, int *q, int *r,
+	int *sumR, int verbose, Frame *frame
 ){
 	int	i,j,l;
 	int	sfrv=0;		/* *scanf return value */
 	char	errMsg[MAXL];
 
-	for (i=1; i<=DoF; i++)	r[i] = 0;
+	for (i=1; i<=DoF; i++) r[i] = 0;
 
 	sfrv=fscanf(fp,"%d", nR );	/* read restrained degrees of freedom */
 	if (sfrv != 1) sferr("number of reactions in reaction data");
@@ -839,6 +840,15 @@ void read_reaction_data (
 		errorMsg(errMsg);
 		exit(83);
 	    }
+	    Node *node = &frame->nodes.data[i - 1];
+	    for (short dof_idx = 0; dof_idx < 6; dof_idx++) {
+		node->dof.x = r[j * 6 - 5];
+		node->dof.y = r[j * 6 - 4];
+		node->dof.z = r[j * 6 - 3];
+		node->dof.xx = r[j * 6 - 2];
+		node->dof.yy = r[j * 6 - 1];
+		node->dof.zz = r[j * 6];
+	    }
 	}
 	*sumR=0;	for (i=1;i<=DoF;i++)	*sumR += r[i];
 	if ( *sumR < 4 ) {
@@ -852,7 +862,7 @@ void read_reaction_data (
 	    exit(85);
 	}
 
-	for (i=1; i<=DoF; i++)	if (r[i]) q[i] = 0;	else q[i] = 1;
+	for (i=1; i<=DoF; i++) if (r[i]) q[i] = 0; else q[i] = 1;
 
 	return;
 }

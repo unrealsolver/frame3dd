@@ -272,7 +272,7 @@ For compilation/installation, see README.txt.
 	q   = ivector(1,DoF);	/* allocate memory for reaction data ... */
 	r   = ivector(1,DoF);	/* allocate memory for reaction data ... */
 	// TODO read to Frame
-	read_reaction_data ( fp, DoF, nN, &nR, q, r, &sumR, verbose );
+	read_reaction_data ( fp, DoF, nN, &nR, q, r, &sumR, verbose, frame );
 	if ( verbose )	fprintf(stdout," ... complete\n");
 
 	sfrv=fscanf(fp, "%d", &nE );	/* number of frame elements	*/
