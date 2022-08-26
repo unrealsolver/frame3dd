@@ -284,7 +284,11 @@ For compilation/installation, see README.txt.
 	if ( nN > nE + 1) {	/* not enough elements */
 		fprintf(stderr,"\n  warning: %d nodes and %d members...", nN, nE );
 		fprintf(stderr," not enough elements to connect all nodes.\n");
-    	}
+	}
+
+	frame->edges.size = nE;
+	// FIXME deallocte
+	frame->edges.data = (Edge *) malloc(sizeof(Edge) * nE);
 
 				/* allocate memory for frame elements ... */
 	L   = dvector(1,nE);	/* length of each element		*/
@@ -307,7 +311,7 @@ For compilation/installation, see README.txt.
 
 	// TODO read to Frame
 	read_frame_element_data( fp, nN, nE, xyz,rj, L, Le, N1, N2,
-					Ax, Asy, Asz, Jx, Iy, Iz, E, G, p, d );
+					Ax, Asy, Asz, Jx, Iy, Iz, E, G, p, d, frame );
 	if ( verbose) 	fprintf(stdout," ... complete\n");
 
 

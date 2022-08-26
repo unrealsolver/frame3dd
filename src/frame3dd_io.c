@@ -392,7 +392,8 @@ void read_frame_element_data (
 	double *L, double *Le,
 	int *N1, int *N2,
 	float *Ax, float *Asy, float *Asz,
-	float *Jx, float *Iy, float *Iz, float *E, float *G, float *p, float *d
+	float *Jx, float *Iy, float *Iz, float *E, float *G, float *p, float *d,
+	Frame *frame
 ){
 	int	n1, n2, i, n, b;
 	int	*epn, epn0=0;	/* vector of elements per node */
@@ -401,7 +402,7 @@ void read_frame_element_data (
 
 	epn = ivector(1,nN);
 
-	for (n=1;n<=nN;n++)	epn[n] = 0;
+	for (n=1;n<=nN;n++) epn[n] = 0;
 
 	for (i=1;i<=nE;i++) {		/* read frame element properties */
 		sfrv=fscanf(fp, "%d", &b );
@@ -411,9 +412,10 @@ void read_frame_element_data (
 		    errorMsg(errMsg);
 		    exit(51);
 		}
-	      	sfrv=fscanf(fp, "%d %d", &N1[b], &N2[b] );
+		sfrv=fscanf(fp, "%d %d", &N1[b], &N2[b] );
 
-		epn[N1[b]] += 1;        epn[N2[b]] += 1;
+		epn[N1[b]] += 1;
+		epn[N2[b]] += 1;
 
 		if (sfrv != 2) sferr("node numbers in frame element data");
 		if ( N1[b] <= 0 || N1[b] > nN || N2[b] <= 0 || N2[b] > nN ) {
@@ -471,6 +473,24 @@ void read_frame_element_data (
 		 errorMsg(errMsg);
 		 exit(59);
 		}
+
+		Edge *edge = &frame->edges.data[i - 1];
+		edge->start = N1[b];
+		edge->end = N2[b];
+		edge->roll = p[b];
+		// FIXME Deallocate
+		edge->material = (Material *) malloc(sizeof(Material));
+		edge->material->E = E[b];
+		edge->material->G = G[b];
+		edge->material->density = d[b];
+		// FIXME Deallocate
+		edge->profile = (Profile *) malloc(sizeof(Profile));
+		edge->profile->Ax = Ax[b];
+		edge->profile->Asy = Asy[b];
+		edge->profile->Asz = Asz[b];
+		edge->profile->Jx = Jx[b];
+		edge->profile->Iy = Iy[b];
+		edge->profile->Iz = Iz[b];
 	}
 
 	for (b=1;b<=nE;b++) {		/* calculate frame element lengths */

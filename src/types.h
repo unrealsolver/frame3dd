@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include "microstran/vec3.h"
 
+/* ####### LOAD CASE DATA ####### */
+/* Point load */
 typedef struct {
 	vec3 force;
 	vec3 momentum;
@@ -15,6 +17,7 @@ typedef struct {
 	unsigned size;
 } PointLoads;
 
+/* Uniform load */
 typedef struct {
 	vec3 force;
 	unsigned edge_id;
@@ -35,6 +38,8 @@ typedef struct {
 	Loads loads;
 } LoadcaseData;
 
+/* ####### FRAME DATA ####### */
+/* Nodes */
 typedef struct {
 	bool x;
 	bool y;
@@ -55,12 +60,46 @@ typedef struct {
 	Node *data;
 } Nodes;
 
+/* Edges */
 typedef struct {
-	unsigned start_node_id;
-	unsigned end_node_id;
+	float density;
+	/* Young's modulus */
+	float E;
+	/* shear modulus */
+	float G;
+} Material;
+
+typedef struct {
+	/* cross section area of each element*/
+	float Ax;
+	/* shear area in local y direction*/
+	float Asy;
+	/* shear area in local z direction*/
+	float Asz;
+	/* torsional moment of inertia */
+	float Jx;
+	/* bending moment of inertia about y-axis */
+	float Iy;
+	/* bending moment of inertia about z-axis */
+	float Iz;
+} Profile;
+
+typedef struct {
+	// TODO Add edge text label
+	/* Start node id */
+	unsigned start;
+	/* End node id */
+	unsigned end;
+	/* Rotation of the element along the axis */
+	float roll;
+	/* Element's material */
+	Material *material;
+	/* Element's profile data */
+	Profile *profile;
 } Edge;
 
 typedef struct {
+	/* Number of elements */
 	unsigned size;
 	Edge *data;
 } Edges;

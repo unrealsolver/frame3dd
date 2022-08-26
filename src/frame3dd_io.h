@@ -35,7 +35,7 @@
 
 /**
  PARSE_OPTIONS -  parse command line options			     04mar09
- command line options over-ride values in the input data file	    
+ command line options over-ride values in the input data file
 */
 void parse_options (
 	int argc, char *argv[],
@@ -51,7 +51,7 @@ void parse_options (
 	double *shift_flag,
 	float *pan_flag,
 	int *write_matrix,
-	int *axial_sign, 
+	int *axial_sign,
 	int *condense_flag,
 	int *verbose,
 	int *debug
@@ -70,7 +70,7 @@ void display_help();
 void display_usage();
 
 /**
- DISPLAY_VERSION -  display version, website, and some help info to stderr 
+ DISPLAY_VERSION -  display version, website, and some help info to stderr
 04mar09
 */
 void display_version();
@@ -125,7 +125,8 @@ void read_frame_element_data (
 	float *Jx, float *Iy, float *Iz,	/**< section inertias	*/
 	float *E, float *G,	/**< elastic moduli and shear moduli	*/
 	float *p,	/**< roll angle of each frame element (radians)	*/
-	float *d	/**< mass density of each frame element		*/
+	float *d,	/**< mass density of each frame element		*/
+	Frame *frame	/**< New frame data struct */
 );
 
 
@@ -274,7 +275,7 @@ void write_input_data(
 	float *Ax, float *Asy, float *Asz,
 	float *Jx, float *Iy, float *Iz,
 	float *E, float *G, float *p,
-	float *d, float *gX, float *gY, float *gZ, 
+	float *d, float *gX, float *gY, float *gZ,
 	double **Ft, double **Fm, float **Dp,
 	int *r,
 	float ***U, float ***W, float ***P, float ***T,
@@ -296,8 +297,8 @@ void write_static_results(
 );
 
 
-/* 
- * CSV_filename - return the file name for the .CSV file and 
+/*
+ * CSV_filename - return the file name for the .CSV file and
  * whether the file should be written or appended (wa)
  * 1 Nov 2015
 */
@@ -306,7 +307,7 @@ void CSV_filename( char CSV_file[], char wa[], char OUT_file[], int lc );
 
 /*
  * WRITE_STATIC_CSV
- * save node displacements, reactions, and  element end forces in a .CSV file   
+ * save node displacements, reactions, and  element end forces in a .CSV file
  * 31dec08, 2015-05-15
  */
 void write_static_csv(
@@ -352,8 +353,8 @@ void peak_internal_forces (
         double *D, int shear,
 	float dx,	// x-axis increment along frame element
 
-        // vectors of peak forces, moments, displacements and slopes 
-	// for each frame element, for load case "lc" 
+        // vectors of peak forces, moments, displacements and slopes
+	// for each frame element, for load case "lc"
         double **pkNx, double **pkVy, double **pkVz,
         double **pkTx, double **pkMy, double **pkMz,
         double **pkDx, double **pkDy, double **pkDz,
@@ -361,7 +362,7 @@ void peak_internal_forces (
 );
 
 
-/* 
+/*
  * WRITE_INTERNAL_FORCES
  *	calculate frame element internal forces, Nx, Vy, Vz, Tx, My, Mz
  *	calculate frame element local displacements, Rx, Dx, Dy, Dz
@@ -474,7 +475,7 @@ void dots ( FILE *fp, int n );
 
 
 /*
- *  EVALUATE -  displays a randomly-generated evaluation message. 
- */ 
+ *  EVALUATE -  displays a randomly-generated evaluation message.
+ */
 void evaluate (  float error, float rms_resid, float tol );
 
