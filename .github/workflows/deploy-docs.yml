@@ -27,7 +27,7 @@ jobs:
               - 'src/**/*.{c,h}'
               - Doxyfile
   deploy:
-    environments:
+    environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     needs: get-changes
