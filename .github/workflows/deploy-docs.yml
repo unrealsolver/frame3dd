@@ -1,0 +1,40 @@
+name: Deploy Doxygen docs to GH pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  get-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            src:
+              - 'src/**/*.{c,h}'
+              - Doxyfile
+  deploy:
+    environments:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: get-changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: DenverCoder1/doxygen-github-pages-action@v1.1.0
+        if: steps.filter.outputs.src == 'true'
+        id: deployment
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
