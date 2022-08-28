@@ -18,6 +18,8 @@ concurrency:
 jobs:
   get-changes:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.changes.outputs.src }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -28,7 +30,7 @@ jobs:
               - 'src/**/*.{c,h}'
               - Doxyfile
   deploy:
-    if: steps.filter.outputs.src == 'true'
+    if: jobs.get-changes.outputs.changed == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
