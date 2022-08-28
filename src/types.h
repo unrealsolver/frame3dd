@@ -109,4 +109,15 @@ typedef struct {
 	Edges edges;
 } Frame;
 
+/* ####### SIMULATION OPTIONS ####### */
+/* Options */
+// FIXME Refactor
+typedef struct {
+	double exaggeration;
+	float scale;
+	float dx;
+	bool sheas;
+	bool geom;
+
+} Options;
 #endif /* F3DD_TYPES_H */
