@@ -34,6 +34,9 @@ jobs:
     needs: get-changes
     runs-on: ubuntu-latest
     steps:
+      - name: Install graphviz
+        run: sudo apt-get install graphviz -y
+        shell: bash
       - uses: DenverCoder1/doxygen-github-pages-action@v1.1.0
         if: steps.filter.outputs.src == 'true'
         id: deployment
