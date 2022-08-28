@@ -28,6 +28,7 @@ jobs:
               - 'src/**/*.{c,h}'
               - Doxyfile
   deploy:
+    if: steps.filter.outputs.src == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -38,7 +39,6 @@ jobs:
         run: sudo apt-get install graphviz -y
         shell: bash
       - uses: DenverCoder1/doxygen-github-pages-action@v1.1.0
-        if: steps.filter.outputs.src == 'true'
         id: deployment
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
