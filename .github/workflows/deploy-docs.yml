@@ -30,13 +30,10 @@ jobs:
             src:
               - 'src/**/*.{c,h}'
               - Doxyfile
-  deploy:
+  build:
     if: needs.get-changes.outputs.changed == 'true'
     needs: get-changes
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Install graphviz
         run: sudo apt-get install graphviz -y
@@ -45,3 +42,24 @@ jobs:
         id: deployment
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Single deploy job since we're just deploying
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Pages
+        uses: actions/configure-pages@v2
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          # Upload entire repository
+          path: '.'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
