@@ -10,6 +10,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  repository-projects: write
 
 concurrency:
   group: "pages"
