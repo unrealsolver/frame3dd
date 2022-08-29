@@ -30,12 +30,12 @@ jobs:
               - 'src/**/*.{c,h}'
               - Doxyfile
   deploy:
-    if: jobs.get-changes.outputs.changed == 'true'
+    if: needs.get-changes.outputs.changed == 'true'
+    needs: get-changes
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    needs: get-changes
-    runs-on: ubuntu-latest
     steps:
       - name: Install graphviz
         run: sudo apt-get install graphviz -y
