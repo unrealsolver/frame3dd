@@ -38,6 +38,7 @@ jobs:
       - name: Install graphviz
         run: sudo apt-get install graphviz -y
         shell: bash
+      # FIXME build to artifact rather than gh branch
       - uses: DenverCoder1/doxygen-github-pages-action@v1.1.0
         id: deployment
         with:
@@ -54,6 +55,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
+          # FIXME use artifacts
           ref: gh-pages
       - name: Setup Pages
         uses: actions/configure-pages@v2
