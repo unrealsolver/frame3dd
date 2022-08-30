@@ -113,11 +113,25 @@ typedef struct {
 /* Options */
 // FIXME Refactor
 typedef struct {
-	double exaggeration;
-	float scale;
-	float dx;
-	bool sheas;
-	bool geom;
+	// TODO Review required
+	float x_step; /**< x-increment for internal force data */
+	// TODO Review required
+	bool shear_mode; /**< Enable shear deformation modeling */
+	// TODO Review required
+	bool geom_nonlinear_mode; /**< Enable geometrical nonlinearity modeling */
 
-} Options;
+} SimulationOptions;
+
+typedef struct {
+	// TODO Review required
+	double exagg_amount; /**< Exaggerate display */
+	// TODO Review required
+	float scale; /**< zoom scale for 3D plotting in Gnuplot */
+} VisualizationOptions;
+
+typedef struct {
+	SimulationOptions simulation;
+	VisualizationOptions visual;
+} RunOptions;
+
 #endif /* F3DD_TYPES_H */

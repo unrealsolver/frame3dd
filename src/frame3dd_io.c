@@ -618,13 +618,11 @@ void read_run_data (
 	    exit(74);
 	}
 
-
 	/* over-ride values from input data file with command-line options */
 	if ( shear_flag != -1   )	*shear = shear_flag;
 	if ( geom_flag  != -1   )	*geom = geom_flag;
 	if ( exagg_flag != -1.0 )	*exagg_static = exagg_flag;
 	if ( anlyz_flag != -1.0 )	*anlyz = anlyz_flag;
-
 
 	return;
 }

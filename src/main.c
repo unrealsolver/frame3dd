@@ -192,6 +192,15 @@ For compilation/installation, see README.txt.
 
 	char	extension[16];	// Input Data file name extension
 
+	RunOptions conf;
+	// Copy to config
+	conf.simulation.x_step = dx;
+	conf.simulation.geom_nonlinear_mode = geom;
+	conf.simulation.shear_mode = shear;
+	// TODO Validate this line
+	conf.visual.exagg_amount = exagg_flag;
+	conf.visual.scale = scale;
+
 	Frame *frame = (Frame *) malloc(sizeof(Frame));
         LoadcaseData *load_cases;
 
@@ -309,11 +318,9 @@ For compilation/installation, see README.txt.
 	p   =  vector(1,nE);	/* element rotation angle about local x axis */
 	d   =  vector(1,nE);	/* element mass density			*/
 
-	// TODO read to Frame
 	read_frame_element_data( fp, nN, nE, xyz,rj, L, Le, N1, N2,
 					Ax, Asy, Asz, Jx, Iy, Iz, E, G, p, d, frame );
 	if ( verbose) 	fprintf(stdout," ... complete\n");
-
 
 	read_run_data ( fp, OUT_file, &shear, shear_flag, &geom, geom_flag,
 			meshpath, plotpath, infcpath,
