@@ -36,7 +36,12 @@ typedef struct {
 typedef struct {
 	vec3 gravity;
 	Loads loads;
-} LoadcaseData;
+} LoadCase;
+
+typedef struct {
+	unsigned size;
+	LoadCase* data;
+} LoadCases;
 
 /* ####### FRAME DATA ####### */
 /* Nodes */

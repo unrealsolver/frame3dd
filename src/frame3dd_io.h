@@ -209,7 +209,7 @@ void read_and_assemble_loads(
 	double ***eqF_mech,	/**< equiv. end forces for mech. loads	*/
 	double ***eqF_temp,	/**< equiv. end forces for temp. loads	*/
 	int verbose,		/**< 1: copious output to screen, 0: none */
-    LoadcaseData *load_cases /**< Load cases array  */
+	LoadCases *load_cases	/**< Load cases array  */
 );
 
 
@@ -278,7 +278,7 @@ void write_input_data(
 	float ***U, float ***W, float ***P, float ***T,
 	int shear, int anlyz, int geom,
 	Frame *frame,
-	LoadcaseData *load_cases
+	LoadCases *load_cases
 );
 
 

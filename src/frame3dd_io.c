@@ -894,7 +894,7 @@ void read_and_assemble_loads (
 		double ***eqF_mech, // equivalent mech loads, global coord
 		double ***eqF_temp, // equivalent temp loads, global coord
 		int verbose,
-		LoadcaseData *load_cases
+		LoadCases *load_cases
 ){
 	float	hy, hz;			/* section dimensions in local coords */
 
@@ -928,7 +928,7 @@ void read_and_assemble_loads (
 
 	for (lc = 1; lc <= nL; lc++) {		/* begin load-case loop */
 
-	LoadcaseData *load_case = &load_cases[lc - 1];
+	LoadCase *load_case = &load_cases->data[lc - 1];
 
 	if ( verbose ) {	/*  display the load case number */
 		textColor('y','g','b','x');
@@ -1047,7 +1047,7 @@ void read_and_assemble_loads (
 	load_case->loads.uniform.size = nU[lc];
 	// Allocate space for uniform load data
 	for (i = 0; i < nL; i++) {
-		load_cases[i].loads.uniform.data = (UniformLoad *) malloc(sizeof(UniformLoad) * nU[i]);
+		load_case->loads.uniform.data = (UniformLoad *) malloc(sizeof(UniformLoad) * nU[i]);
 	}
 
 	for (i=1; i <= nU[lc]; i++) {	/* ! local element coordinates ! */
@@ -1849,7 +1849,7 @@ void write_input_data (
 	double **Ft, double **Fm, float **Dp,
 	int *R,
 	float ***U, float ***W, float ***P, float ***T,
-	int shear, int anlyz, int geom, Frame *frame, LoadcaseData *load_cases
+	int shear, int anlyz, int geom, Frame *frame, LoadCases *load_cases
 ){
 	int i,j,n, lc;
 	time_t now; /* modern time variable type */
@@ -1923,7 +1923,7 @@ void write_input_data (
 	else		fprintf(fp,"  Neglect geometric stiffness.\n");
 
 	for (lc = 1; lc <= nL; lc++) {		/* start load case loop */
-	  LoadcaseData load_case = load_cases[lc - 1];
+	  LoadCase load_case = load_cases->data[lc - 1];
 	  vec3 gravity = load_case.gravity;
 	  fprintf(fp,"\nL O A D   C A S E   %d   O F   %d  ... \n\n", lc,nL);
 	  fprintf(fp,"   Gravity X = ");

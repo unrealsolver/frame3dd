@@ -202,7 +202,7 @@ For compilation/installation, see README.txt.
 	conf.visual.scale = scale;
 
 	Frame *frame = (Frame *) malloc(sizeof(Frame));
-        LoadcaseData *load_cases;
+        LoadCases *load_cases = (LoadCases *) malloc(sizeof(LoadCases));
 
 	parse_options ( argc, argv, IN_file, OUT_file,
 			&shear_flag, &geom_flag, &anlyz_flag, &exagg_flag,
@@ -344,10 +344,12 @@ For compilation/installation, see README.txt.
 		exit(102);
 	}
 
-	load_cases = (LoadcaseData *) malloc(sizeof(LoadcaseData) * nL);
+	load_cases->size = nL;
+	// FIXME Deallocate
+	load_cases->data = (LoadCase *) malloc(sizeof(LoadCase) * nL);
 	for (unsigned i = 0; i < nL; i++) {
-		load_cases[i].loads.point.size = 0;
-		load_cases[i].loads.uniform.size = 0;
+		load_cases->data[i].loads.point.size = 0;
+		load_cases->data[i].loads.uniform.size = 0;
 	}
 
 	U   =  D3matrix(1,nL,1,nE,1,4);    /* uniform load on each member */

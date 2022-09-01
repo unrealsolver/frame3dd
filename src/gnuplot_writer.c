@@ -288,7 +288,7 @@ void static_mesh(
 		vec3 *xyz, double *L,
 		int *N1, int *N2, float *p, double *D,
 		double exagg_static, int D3_flag, int anlyz, float dx, float scale,
-		LoadcaseData *load_cases,
+		LoadCases *load_cases,
 		Frame *frame
 ){
 	FILE	*fpif=NULL, *fpm=NULL;
@@ -365,7 +365,7 @@ void static_mesh(
 		exit(255);
 	}
 
-	LoadcaseData load_case = load_cases[lc - 1];
+	LoadCase load_case = load_cases->data[lc - 1];
 
 	// Draw static force arrows
 	for (unsigned i = 0; i < load_case.loads.point.size; i++) {
