@@ -284,7 +284,7 @@ inline void writer_undeformed_mesh(
 void static_mesh(
 		char IN_file[],
 		char infcpath[], char meshpath[], char plotpath[],
-		char *title, int nN, int nE, int nL, int lc, int DoF,
+		char *title, int nN, int nE, int lc, int DoF,
 		vec3 *xyz, double *L,
 		int *N1, int *N2, float *p, double *D,
 		double exagg_static, int D3_flag, int anlyz, float dx, float scale,
@@ -351,7 +351,7 @@ void static_mesh(
 	fprintf(fpm,"analysis file: %s ", IN_file );
 	if ( anlyz ) {
 		fprintf(fpm,"  deflection exaggeration: %.1f ", exagg_static );
-		fprintf(fpm,"  load case %d of %d \"\n", lc, nL );
+		fprintf(fpm,"  load case %d of %d \"\n", lc, load_cases->size );
 	} else {
 		fprintf(fpm,"  data check only \"\n");
 	}
@@ -382,14 +382,20 @@ void static_mesh(
 	// 2D plot command
 	fprintf(fpm,"%c plot '%s' u 2:3 t 'undeformed mesh' w lp ", D2, meshpath);
 	if (!anlyz) fprintf(fpm,"lw %d lt 1 pt 6 \n", lw );
-	else fprintf(fpm,"lw 1 lt 5 pt 6, '%s' u 1:2 t 'load case %d of %d' w l lw %d lt 3\n", meshfl, lc, nL, lw );
+	else fprintf(
+		fpm,"lw 1 lt 5 pt 6, '%s' u 1:2 t 'load case %d of %d' w l lw %d lt 3\n",
+		meshfl, lc, load_cases->size, lw
+	);
 
 	// 3D plot command
-	fprintf(fpm,"%c splot '%s' u 2:3:4 t 'load case %d of %d' w lp ", D3, meshpath, lc, nL );
+	fprintf(fpm,"%c splot '%s' u 2:3:4 t 'load case %d of %d' w lp ", D3, meshpath, lc, load_cases->size);
 	if (!anlyz) fprintf(fpm," lw %d lt 1 pt 6 \n", lw );
-	else fprintf(fpm," lw 1 lt 5 pt 6, '%s' u 1:2:3 t 'load case %d of %d' w l lw %d lt 3\n",meshfl, lc, nL, lw );
+	else fprintf(
+		fpm, " lw 1 lt 5 pt 6, '%s' u 1:2:3 t 'load case %d of %d' w l lw %d lt 3\n",
+		meshfl, lc, load_cases->size, lw
+	);
 
-	if ( lc < nL && anlyz ) fprintf(fpm, "pause -1\n");
+	if ( lc < load_cases->size && anlyz ) fprintf(fpm, "pause -1\n");
 
 	fclose(fpm);
 
@@ -412,7 +418,7 @@ void static_mesh(
 	fprintf(fpm,"# FRAME3DD ANALYSIS RESULTS  http://frame3dd.sf.net/");
 	fprintf(fpm," VERSION %s \n", VERSION);
 	fprintf(fpm,"# %s\n", title );
-	fprintf(fpm,"# L O A D  C A S E   %d  of   %d \n", lc, nL );
+	fprintf(fpm,"# L O A D  C A S E   %d  of   %d \n", lc, load_cases->size);
 	fprintf(fpm,"# %s", ctime(&now) );
 	fprintf(fpm,"# D E F O R M E D   M E S H   D A T A ");
 	fprintf(fpm,"  deflection exaggeration: %.1f\n", exagg_static );

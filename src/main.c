@@ -649,7 +649,7 @@ For compilation/installation, see README.txt.
 						D, shear, error );
 
 			static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
-						nN, nE, nL, lc, DoF,
+						nN, nE, lc, DoF,
 						xyz, L, N1,N2, p, D,
 						exagg_static, D3_flag, anlyz,
 						dx, scale, load_cases, frame );
@@ -663,7 +663,7 @@ For compilation/installation, see README.txt.
 
 		static_mesh(
 			IN_file, infcpath, meshpath, plotpath, title,
-			nN, nE, nL, lc, DoF,
+			nN, nE, lc, DoF,
 			xyz, L, N1,N2, p, D,
 			exagg_static, D3_flag, anlyz,
 			dx, scale, load_cases, frame

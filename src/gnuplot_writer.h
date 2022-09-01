@@ -75,7 +75,7 @@ void cubic_bent_beam(
 void static_mesh(
 	char OUT_file[],
 	char infcpath[], char meshpath[], char plotpath[],
-	char *title, int nN, int nE, int nL, int lc, int DoF,
+	char *title, int nN, int nE, int lc, int DoF,
 	vec3 *xyz, double *L,
 	int *N1, int *N2, float *p, double *D,
 	double exagg_static, int D3_flag, int anlyz, float dx, float scale,
