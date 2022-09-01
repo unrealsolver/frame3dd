@@ -188,9 +188,9 @@ void cubic_bent_beam(
 
 /* Part of static_mesh */
 inline void write_header(
-	FILE *fpm, char *title, int nN, int nE,
+	FILE *fpm, char *title,
 	vec3 *xyz, int *N1, int *N2,
-	float scale, char D3, time_t now
+	float scale, char D3, time_t now, Frame *frame
 ) {
 	int j, m, n1, n2 = 0;
 	double	mx, my, mz; /* coordinates of the frame element number labels */
@@ -212,13 +212,16 @@ inline void write_header(
 	fprintf(fpm,"# set view equal xyz # 1:1 3D axis scaling \n");
 
 	fprintf(fpm,"# NODE NUMBER LABELS\n");
-	for (j=1; j<=nN; j++)
+	for (j = 0; j < frame->nodes.size; j++) {
+		Node *node = &frame->nodes.data[j];
 		fprintf(
-			fpm,"set label ' %d' at %12.4e, %12.4e, %12.4e\n",
-			j, xyz[j].x,xyz[j].y,xyz[j].z );
+			fpm, "set label ' %d' at %12.4e, %12.4e, %12.4e\n",
+			j + 1, node->position.x, node->position.y, node->position.z
+		);
+	}
 
 	fprintf(fpm,"# ELEMENT NUMBER LABELS\n");
-	for (m=1; m<=nE; m++) {
+	for (m=1; m <= frame->edges.size; m++) {
 		n1 = N1[m];	n2 = N2[m];
 		mx = 0.5 * ( xyz[n1].x + xyz[n2].x );
 		my = 0.5 * ( xyz[n1].y + xyz[n2].y );
@@ -343,7 +346,7 @@ void static_mesh(
 	// write header, plot-setup cmds, node label, and element label data
 
 	if (lc <= 1) {	// header & node number & element number labels
-		write_header(fpm, title, nN, nE, xyz, N1, N2, scale, D3, now);
+		write_header(fpm, title, xyz, N1, N2, scale, D3, now, frame);
 	}
 
 	// different plot title for each load case
