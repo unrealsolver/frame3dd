@@ -439,11 +439,12 @@ For compilation/installation, see README.txt.
 		exit(14);
 	}
 
-	write_input_data ( fp, title, nN,nE,nL, nD,nR, nF,nU,nW,nP,nT,
-			xyz, rj, N1,N2, Ax,Asy,Asz, Jx,Iy,Iz, E,G, p,
-			d, gX, gY, gZ,
-			F_temp, F_mech, Dp, r, U, W, P, T,
-			shear, anlyz, geom );
+	write_input_data(
+		fp, title, nN, nE, nL, nD, nR, nF, nU, nW, nP, nT,
+		xyz, p, d,
+		F_temp, F_mech, Dp, r, U, W, P, T,
+		shear, anlyz, geom, frame, load_cases
+	);
 
 
 	if ( anlyz ) {			/* solve the problem	*/

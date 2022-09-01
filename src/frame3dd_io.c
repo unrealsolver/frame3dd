@@ -1844,18 +1844,15 @@ void write_input_data (
 	char *title, int nN, int nE, int nL,
 	int *nD, int nR,
 	int *nF, int *nU, int *nW, int *nP, int *nT,
-	vec3 *xyz, float *r,
-	int *J1, int *J2,
-	float *Ax, float *Asy, float *Asz, float *Jx, float *Iy, float *Iz,
-	float *E, float *G, float *p, float *d,
-	float *gX, float *gY, float *gZ,
+	vec3 *xyz,
+	float *p, float *d,
 	double **Ft, double **Fm, float **Dp,
 	int *R,
 	float ***U, float ***W, float ***P, float ***T,
-	int shear, int anlyz, int geom
+	int shear, int anlyz, int geom, Frame *frame, LoadcaseData *load_cases
 ){
-	int	i,j,n, lc;
-	time_t  now;		/* modern time variable type	*/
+	int i,j,n, lc;
+	time_t now; /* modern time variable type */
 
 	(void) time(&now);
 
@@ -1893,20 +1890,32 @@ void write_input_data (
 	fprintf(fp,"                                    R E S T R A I N T S\n");
 	fprintf(fp,"  Node       X              Y              Z");
 	fprintf(fp,"         radius  Fx Fy Fz Mx My Mz\n");
-	for (i=1; i<=nN; i++) {
-	 j = 6*(i-1);
-	 fprintf(fp,"%5d %14.6f %14.6f %14.6f %8.3f  %2d %2d %2d %2d %2d %2d\n",
-		i, xyz[i].x, xyz[i].y, xyz[i].z, r[i],
-			R[j+1], R[j+2], R[j+3], R[j+4], R[j+5], R[j+6] );
+	for (i = 0; i < frame->nodes.size; i++) {
+		Node node = frame->nodes.data[i];
+		vec3 pos = node.position;
+		j = 6 * i;
+		fprintf(
+			fp,"%5d %14.6f %14.6f %14.6f %8.3f  %2d %2d %2d %2d %2d %2d\n",
+			i + 1, pos.x, pos.y, pos.z, node.radius,
+			R[j+1], R[j+2], R[j+3], R[j+4], R[j+5], R[j+6]
+		);
 	}
 	fprintf(fp,"F R A M E   E L E M E N T   D A T A\t\t\t\t\t(local)\n");
 	fprintf(fp,"  Elmnt  J1    J2     Ax   Asy   Asz    ");
 	fprintf(fp,"Jxx     Iyy     Izz       E       G roll  density\n");
-	for (i=1; i<= nE; i++) {
-		fprintf(fp,"%5d %5d %5d %6.1f %5.1f %5.1f",
-					i, J1[i],J2[i], Ax[i], Asy[i], Asz[i] );
-		fprintf(fp," %6.1f %7.1f %7.1f %8.1f %7.1f %3.0f %8.2e\n",
-			Jx[i], Iy[i], Iz[i], E[i], G[i], p[i]*180.0/PI, d[i] );
+	for (i = 0; i < frame->edges.size; i++) {
+		Edge edge = frame->edges.data[i];
+		Profile *profile = edge.profile;
+		Material *material = edge.material;
+		fprintf(
+			fp, "%5d %5d %5d %6.1f %5.1f %5.1f",
+			i + 1, edge.start, edge.end, profile->Ax, profile->Asy, profile->Asz
+		);
+		fprintf(
+			fp," %6.1f %7.1f %7.1f %8.1f %7.1f %3.0f %8.2e\n",
+			profile->Jx, profile->Iy, profile->Iz, material->E, material->G,
+			p[i + 1] * 180.0 / PI, d[i + 1]
+		);
 	}
 	if ( shear )	fprintf(fp,"  Include shear deformations.\n");
 	else		fprintf(fp,"  Neglect shear deformations.\n");
@@ -1914,14 +1923,15 @@ void write_input_data (
 	else		fprintf(fp,"  Neglect geometric stiffness.\n");
 
 	for (lc = 1; lc <= nL; lc++) {		/* start load case loop */
-
+	  LoadcaseData load_case = load_cases[lc - 1];
+	  vec3 gravity = load_case.gravity;
 	  fprintf(fp,"\nL O A D   C A S E   %d   O F   %d  ... \n\n", lc,nL);
 	  fprintf(fp,"   Gravity X = ");
-	  if (gX[lc] == 0) fprintf(fp," 0.0 "); else fprintf(fp," %.3f ", gX[lc]);
+	  if (gravity.x == 0) fprintf(fp," 0.0 "); else fprintf(fp," %.3f ", gravity.x);
 	  fprintf(fp,"   Gravity Y = ");
-	  if (gY[lc] == 0) fprintf(fp," 0.0 "); else fprintf(fp," %.3f ", gY[lc]);
+	  if (gravity.y == 0) fprintf(fp," 0.0 "); else fprintf(fp," %.3f ", gravity.y);
 	  fprintf(fp,"   Gravity Z = ");
-	  if (gZ[lc] == 0) fprintf(fp," 0.0 "); else fprintf(fp," %.3f ", gZ[lc]);
+	  if (gravity.z == 0) fprintf(fp," 0.0 "); else fprintf(fp," %.3f ", gravity.z);
 	  fprintf(fp,"\n");
 	  fprintf(fp," %3d concentrated loads\n", nF[lc] );
 	  fprintf(fp," %3d uniformly distributed loads\n", nU[lc]);

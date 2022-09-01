@@ -271,16 +271,14 @@ void write_input_data(
 	char *title, int nN, int nE,  int nL,
 	int *nD, int nR,
 	int *nF, int *nU, int *nW, int *nP, int *nT,
-	vec3 *xyz, float *rj,
-	int *N1, int *N2,
-	float *Ax, float *Asy, float *Asz,
-	float *Jx, float *Iy, float *Iz,
-	float *E, float *G, float *p,
-	float *d, float *gX, float *gY, float *gZ,
+	vec3 *xyz,
+	float *p, float *d,
 	double **Ft, double **Fm, float **Dp,
-	int *r,
+	int *R,
 	float ***U, float ***W, float ***P, float ***T,
-	int shear, int anlyz, int geom
+	int shear, int anlyz, int geom,
+	Frame *frame,
+	LoadcaseData *load_cases
 );
 
 
