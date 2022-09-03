@@ -1,4 +1,5 @@
 # FRAME3DD: a frame analysis program
+[![Build Check](https://github.com/unrealsolver/frame3dd/actions/workflows/build-check.yml/badge.svg)](https://github.com/unrealsolver/frame3dd/actions/workflows/build-check.yml)
 
 [Documentation](https://unrealsolver.github.io/frame3dd/)
 
@@ -28,8 +29,16 @@ the environment variable `FRAME3DD_OUTDIR`.
 Note that you require write permissions for the input file in order that
 FRAME3DD can append its calculation results to that file.
 
-# License
+# Developer's guide
+## Requirements
+Minimal requirements: `scons`, `build-essential`
 
+Recommended: `cppunit`
+
+## Build
+To build FRAME3DD just run `scons`
+
+# License
 FRAME3DD is free software; you may redistribute it and/or modify it under 
 the terms of the GNU General Public License (GPL) as published by the
 Free Software Foundation. FRAME3DD is distributed in the hope that it will
