@@ -884,7 +884,7 @@ void read_reaction_data (
  */
 void read_and_assemble_loads (
 		FILE *fp,
-		int nN, int nE, int nL, int DoF,
+		int DoF,
 		vec3 *xyz,
 		double *L, double *Le,
 		int *J1, int *J2,
@@ -901,8 +901,14 @@ void read_and_assemble_loads (
 		double ***eqF_mech, // equivalent mech loads, global coord
 		double ***eqF_temp, // equivalent temp loads, global coord
 		int verbose,
+		Frame *frame,
 		LoadCases *load_cases
 ){
+	// Hookup the old variable names
+	const int nN = frame->nodes.size;
+	const int nE = frame->edges.size;
+	const int nL = load_cases->size;
+
 	float	hy, hz;			/* section dimensions in local coords */
 
 	float	x1,x2, w1,w2;
@@ -957,32 +963,40 @@ void read_and_assemble_loads (
 	if (sfrv != 3) sferr("gX gY gZ values in load data");
 
 	for (n=1; n<=nE; n++) {
-		n1 = J1[n];	n2 = J2[n];
+		const Material *material = frame->edges.data[n -1].material;
+		const Profile *profile = frame->edges.data[n -1].profile;
+		const float Ax = profile->Ax;
+		const float gX = load_case->gravity.x;
+		const float gY = load_case->gravity.y;
+		const float gZ = load_case->gravity.z;
+
+		n1 = J1[n];
+		n2 = J2[n];
 
 		coord_trans ( xyz, L[n], n1, n2,
 			&t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, p[n] );
 
-		eqF_mech[lc][n][1]  = d[n]*Ax[n]*L[n]*gX[lc] / 2.0;
-		eqF_mech[lc][n][2]  = d[n]*Ax[n]*L[n]*gY[lc] / 2.0;
-		eqF_mech[lc][n][3]  = d[n]*Ax[n]*L[n]*gZ[lc] / 2.0;
+		eqF_mech[lc][n][1]  = d[n] * Ax * L[n] * gX / 2.0;
+		eqF_mech[lc][n][2]  = d[n] * Ax * L[n] * gY / 2.0;
+		eqF_mech[lc][n][3]  = d[n] * Ax * L[n] * gZ / 2.0;
 
-		eqF_mech[lc][n][4]  = d[n]*Ax[n]*L[n]*L[n] / 12.0 *
-			( (-t4*t8+t5*t7)*gY[lc] + (-t4*t9+t6*t7)*gZ[lc] );
-		eqF_mech[lc][n][5]  = d[n]*Ax[n]*L[n]*L[n] / 12.0 *
-			( (-t5*t7+t4*t8)*gX[lc] + (-t5*t9+t6*t8)*gZ[lc] );
-		eqF_mech[lc][n][6]  = d[n]*Ax[n]*L[n]*L[n] / 12.0 *
-			( (-t6*t7+t4*t9)*gX[lc] + (-t6*t8+t5*t9)*gY[lc] );
+		eqF_mech[lc][n][4]  = d[n] * Ax * L[n]*L[n] / 12.0 *
+			( (-t4*t8+t5*t7)*gY + (-t4*t9+t6*t7)*gZ );
+		eqF_mech[lc][n][5]  = d[n] * Ax *L[n]*L[n] / 12.0 *
+			( (-t5*t7+t4*t8)*gX + (-t5*t9+t6*t8)*gZ );
+		eqF_mech[lc][n][6]  = d[n] * Ax *L[n]*L[n] / 12.0 *
+			( (-t6*t7+t4*t9)*gX + (-t6*t8+t5*t9)*gY );
 
-		eqF_mech[lc][n][7]  = d[n]*Ax[n]*L[n]*gX[lc] / 2.0;
-		eqF_mech[lc][n][8]  = d[n]*Ax[n]*L[n]*gY[lc] / 2.0;
-		eqF_mech[lc][n][9]  = d[n]*Ax[n]*L[n]*gZ[lc] / 2.0;
+		eqF_mech[lc][n][7]  = d[n] * Ax * L[n] * gX / 2.0;
+		eqF_mech[lc][n][8]  = d[n] * Ax * L[n] * gY / 2.0;
+		eqF_mech[lc][n][9]  = d[n] * Ax * L[n] * gZ / 2.0;
 
-		eqF_mech[lc][n][10] = d[n]*Ax[n]*L[n]*L[n] / 12.0 *
-			( ( t4*t8-t5*t7)*gY[lc] + ( t4*t9-t6*t7)*gZ[lc] );
-		eqF_mech[lc][n][11] = d[n]*Ax[n]*L[n]*L[n] / 12.0 *
-			( ( t5*t7-t4*t8)*gX[lc] + ( t5*t9-t6*t8)*gZ[lc] );
-		eqF_mech[lc][n][12] = d[n]*Ax[n]*L[n]*L[n] / 12.0 *
-			( ( t6*t7-t4*t9)*gX[lc] + ( t6*t8-t5*t9)*gY[lc] );
+		eqF_mech[lc][n][10] = d[n] * Ax * L[n]*L[n] / 12.0 *
+			( ( t4*t8-t5*t7)*gY + ( t4*t9-t6*t7)*gZ );
+		eqF_mech[lc][n][11] = d[n] * Ax * L[n]*L[n] / 12.0 *
+			( ( t5*t7-t4*t8)*gX + ( t5*t9-t6*t8)*gZ );
+		eqF_mech[lc][n][12] = d[n] * Ax * L[n]*L[n] / 12.0 *
+			( ( t6*t7-t4*t9)*gX + ( t6*t8-t5*t9)*gY );
 
 		/* debugging ... check eqF data
 		printf("n=%d ", n);
@@ -1232,8 +1246,8 @@ void read_and_assemble_loads (
 		Nx2 = ( -(2.0*w1+w2)*x1*x1 + (2.0*w2+w1)*x2*x2  - (w2-w1)*x1*x2 ) / ( 6.0*Ln );
 
 		/* y-axis trapezoidal loads (across the frame element length) */
-		x1 =  W[lc][i][6];  x2 = W[lc][i][7];
-		w1 =  W[lc][i][8]; w2 =  W[lc][i][9];
+		x1 =  W[lc][i][6]; x2 = W[lc][i][7];
+		w1 =  W[lc][i][8]; w2 = W[lc][i][9];
 
 		R1o = ( (2.0*w1+w2)*x1*x1 - (w1+2.0*w2)*x2*x2 +
 			 3.0*(w1+w2)*Ln*(x2-x1) - (w1-w2)*x1*x2 ) / (6.0*Ln);

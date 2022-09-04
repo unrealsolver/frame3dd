@@ -328,23 +328,24 @@ For compilation/installation, see README.txt.
 			&anlyz, anlyz_flag, debug );
 
 	sfrv=fscanf(fp, "%d", &nL );	/* number of load cases		*/
+	load_cases->size = nL;
+
 	if (sfrv != 1)	sferr("nL value for number of load cases");
 	if ( verbose ) {	/* display nL */
 		fprintf(stdout," number of load cases ");
-		dots(stdout,31);	fprintf(stdout," nL = %3d \n",nL);
+		dots(stdout,31); fprintf(stdout," nL = %3d \n", load_cases->size);
 	}
 
-	if ( nL < 1 ) {	/* not enough load cases */
+	if (load_cases->size < 1) {	/* not enough load cases */
 		errorMsg("\n ERROR: the number of load cases must be at least 1\n");
 		exit(101);
 	}
-	if ( nL >= _NL_ ) { /* too many load cases */
+	if (load_cases->size >= _NL_) { /* too many load cases */
 		sprintf(errMsg,"\n ERROR: maximum of %d load cases allowed\n", _NL_-1);
 		errorMsg(errMsg);
 		exit(102);
 	}
 
-	load_cases->size = nL;
 	// FIXME Deallocate
 	load_cases->data = (LoadCase *) malloc(sizeof(LoadCase) * nL);
 	for (unsigned i = 0; i < nL; i++) {
@@ -399,12 +400,12 @@ For compilation/installation, see README.txt.
 	pkSy = dmatrix(1,nL,1,nE);
 	pkSz = dmatrix(1,nL,1,nE);
 
-	read_and_assemble_loads( fp, nN, nE, nL, DoF, xyz, L, Le, N1, N2,
+	read_and_assemble_loads( fp, DoF, xyz, L, Le, N1, N2,
 			Ax,Asy,Asz, Iy,Iz, E, G, p,
 			d, gX, gY, gZ, r, shear,
 			nF, nU, nW, nP, nT, nD,
 			Q, F_temp, F_mech, F, U, W, P, T,
-			Dp, eqF_mech, eqF_temp, verbose, load_cases );
+			Dp, eqF_mech, eqF_temp, verbose, frame, load_cases );
 
 	if ( verbose ) {	/* display load data complete */
 		fprintf(stdout,"                                                     ");

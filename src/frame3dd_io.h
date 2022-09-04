@@ -171,9 +171,6 @@ void read_reaction_data(
 */
 void read_and_assemble_loads(
 	FILE *fp,	/**< input data file pointer			*/
-	int nN,		/**< number of nodes				*/
-	int nE,		/**< number of frame elements			*/
-	int nL,		/**< number of load cases			*/
 	int DoF,	/**< number of degrees of freedom		*/
 	vec3 *xyz,	/**< XYZ coordinates of each node		*/
 	double *L, double *Le,	/**< length of each frame element, effective */
@@ -206,6 +203,7 @@ void read_and_assemble_loads(
 	double ***eqF_mech,	/**< equiv. end forces for mech. loads	*/
 	double ***eqF_temp,	/**< equiv. end forces for temp. loads	*/
 	int verbose,		/**< 1: copious output to screen, 0: none */
+	Frame *frame,
 	LoadCases *load_cases	/**< Load cases array  */
 );
 
