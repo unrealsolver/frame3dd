@@ -353,18 +353,21 @@ void display_version_about()
  * READ_NODE_DATA  -  read node location data
  * 04 Jan 2009
  */
-void read_node_data( FILE *fp, int nN, vec3 *xyz, float *r, Frame *frame )
+void read_node_data( FILE *fp, vec3 *xyz, float *r, Frame *frame )
 {
 	int	i, j,
 		sfrv=0;		/* *scanf return value	*/
 	char	errMsg[MAXL];
 
-	for (i=1;i<=nN;i++) {		/* read node coordinates	*/
+	for (i=1; i <= frame->nodes.size; i++) {		/* read node coordinates	*/
 		Node *node = &frame->nodes.data[i - 1];
 		sfrv=fscanf(fp, "%d", &j );
 		if (sfrv != 1) sferr("node number in node data");
-		if ( j <= 0 || j > nN ) {
-		    sprintf(errMsg,"\nERROR: in node coordinate data, node number out of range\n(node number %d is <= 0 or > %d)\n", j, nN);
+		if ( j <= 0 || j > frame->nodes.size ) {
+		    sprintf(
+			  errMsg, "\nERROR: in node coordinate data, node number out of range\n(node number %d is <= 0 or > %d)\n",
+			  j, frame->nodes.size
+		    );
 		    errorMsg(errMsg);
 		    exit(41);
 		}

@@ -273,7 +273,7 @@ For compilation/installation, see README.txt.
 	// FIXME deallocte
 	frame->nodes.data = (Node *) malloc(sizeof(Node) * nN);
 
-	read_node_data ( fp, nN, xyz, rj, frame );
+	read_node_data(fp, xyz, rj, frame);
 	if ( verbose )	printf(" ... complete\n");
 
 	DoF = 6*nN;		/* total number of degrees of freedom	*/

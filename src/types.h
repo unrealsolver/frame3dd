@@ -62,6 +62,7 @@ typedef struct {
 
 typedef struct {
 	unsigned size;
+	/* Some cells might be uninitialized for O(1) search */
 	Node *data;
 } Nodes;
 
@@ -106,6 +107,7 @@ typedef struct {
 typedef struct {
 	/* Number of elements */
 	unsigned size;
+	/* Some cells might be uninitialized for O(1) search */
 	Edge *data;
 } Edges;
 
