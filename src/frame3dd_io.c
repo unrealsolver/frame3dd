@@ -1862,16 +1862,20 @@ void read_condensation_data (
  */
 void write_input_data (
 	FILE *fp,
-	char *title, int nN, int nE, int nL,
+	char *title,
 	int *nD, int nR,
 	int *nF, int *nU, int *nW, int *nP, int *nT,
-	vec3 *xyz,
 	float *p, float *d,
 	double **Ft, double **Fm, float **Dp,
 	int *R,
 	float ***U, float ***W, float ***P, float ***T,
 	int shear, int anlyz, int geom, Frame *frame, LoadCases *load_cases
 ){
+	// Hookup the old variable names
+	const int nN = frame->nodes.size;
+	const int nE = frame->edges.size;
+	const int nL = load_cases->size;
+
 	int i,j,n, lc;
 	time_t now; /* modern time variable type */
 
@@ -2063,11 +2067,17 @@ void write_input_data (
  */
 void write_static_results (
 		FILE *fp,
-		int nN, int nE, int nL, int lc, int DoF,
+		int lc, int DoF,
 		int *J1, int *J2,
 		double *F, double *D, double *R, int *r, double **Q,
-		double err, int ok, int axial_sign
+		double err, int ok, int axial_sign,
+		Frame *frame, LoadCases *load_cases
 ){
+	// Hookup the old variable names
+	const int nN = frame->nodes.size;
+	const int nE = frame->edges.size;
+	const int nL = load_cases->size;
+
 	double	disp;
 	int	i,j,n;
 
@@ -2193,11 +2203,17 @@ void CSV_filename( char CSV_file[], char wa[], char OUT_file[], int lc )
 void write_static_csv (
 		char OUT_file[],
 		char title[],
-		int nN, int nE, int nL, int lc, int DoF,
+		int lc, int DoF,
 		int *J1, int *J2,
 		double *F, double *D, double *R, int *r, double **Q,
-		double err, int ok
+		double err, int ok,
+		Frame *frame, LoadCases *load_cases
 ){
+	// Hookup the old variable names
+	const int nN = frame->nodes.size;
+	const int nE = frame->edges.size;
+	const int nL = load_cases->size;
+
 	FILE	*fpcsv;
 	int	i,j,n;
 	char	wa[4];
@@ -2347,11 +2363,17 @@ void write_value (
  */
 void write_static_mfile (
 		char *OUT_file, char *title,
-		int nN, int nE, int nL, int lc, int DoF,
+		int lc, int DoF,
 		int *J1, int *J2,
 		double *F, double *D, double *R, int *r, double **Q,
-		double err, int ok
+		double err, int ok,
+		Frame *frame, LoadCases *load_cases
 ){
+	// Hookup the old variable names
+	const int nN = frame->nodes.size;
+	const int nE = frame->edges.size;
+	const int nL = load_cases->size;
+
 	FILE	*fpm;
 	int	i,j,n;
 	char	*wa;
@@ -2486,11 +2508,9 @@ void write_static_mfile (
  */
 void peak_internal_forces (
 		int lc, 	// load case number
-		int nL, 	// total number of load cases
 		vec3 *xyz, 	// node locations
-		double **Q, int nN, int nE, double *L, int *N1, int *N2,
-		float *Ax,float *Asy,float *Asz,float *Jx,float *Iy,float *Iz,
-		float *E, float *G, float *p,
+		double **Q, double *L, int *N1, int *N2,
+		float *p,
 		float *d, float gX, float gY, float gZ,
 		int nU, float **U, int nW, float **W, int nP, float **P,
 		double *D, int shear,
@@ -2501,8 +2521,14 @@ void peak_internal_forces (
 		double **pkNx, double **pkVy, double **pkVz,
 		double **pkTx, double **pkMy, double **pkMz,
 		double **pkDx, double **pkDy, double **pkDz,
-		double **pkRx, double **pkSy, double **pkSz
+		double **pkRx, double **pkSy, double **pkSz,
+		Frame *frame, LoadCases *load_cases
 ){
+	// Hookup the old variable names
+	const int nN = frame->nodes.size;
+	const int nE = frame->edges.size;
+	const int nL = load_cases->size;
+
 	double	t1, t2, t3, t4, t5, t6, t7, t8, t9, /* coord transformation */
 		u1, u2, u3, u4, u5, u6, u7, u8, u9, u10, u11, u12; /* displ. */
 
@@ -2535,6 +2561,8 @@ void peak_internal_forces (
 		i,		// counter along x axis from node N1 to node N2
 		n1,n2,i1,i2;	// starting and stopping node numbers
 
+	LoadCase *load_case = &load_cases->data[lc - 1];
+
 	if (dx == -1.0)	return;	// skip calculation of internal forces and displ
 
 	for ( m=1; m <= nE; m++ ) {	// initialize peak values to zero
@@ -2545,22 +2573,30 @@ void peak_internal_forces (
 	}
 
 	for ( m=1; m <= nE; m++ ) {	// loop over all frame elements
+		const Edge *edge = &frame->edges.data[m - 1];
+		const Profile *profile = edge->profile;
+		const Material *material = edge->material;
+		const float Ax = profile->Ax;
+		const float Asy = profile->Asy;
+		const float Asz = profile->Asz;
+		const float Iy = profile->Iy;
+		const float Iz = profile->Iz;
+		const float Jx = profile->Jx;
+		const float E = material->E;
+		const float G = material->G;
 
 		n1 = N1[m];	n2 = N2[m]; // node 1 and node 2 of elmnt m
-
 		dx = L[m] / (float) nx; // x-axis increment, same for each element
-
-	// no need to allocate memory for interior force or displacement data
-
-	// find interior axial force, shear forces, torsion and bending moments
+		// no need to allocate memory for interior force or displacement data
+		// find interior axial force, shear forces, torsion and bending moments
 
 		coord_trans ( xyz, L[m], n1, n2,
 			&t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, p[m] );
 
 		// distributed gravity load in local x, y, z coordinates
-		wxg = d[m]*Ax[m]*(t1*gX + t2*gY + t3*gZ);
-		wyg = d[m]*Ax[m]*(t4*gX + t5*gY + t6*gZ);
-		wzg = d[m]*Ax[m]*(t7*gX + t8*gY + t9*gZ);
+		wxg = d[m]*Ax*(t1*gX + t2*gY + t3*gZ);
+		wyg = d[m]*Ax*(t4*gX + t5*gY + t6*gZ);
+		wzg = d[m]*Ax*(t7*gX + t8*gY + t9*gZ);
 
 		// add uniformly-distributed loads to gravity load
 		for (n=1; n<=nE && cU<nU; n++) {
@@ -2678,18 +2714,18 @@ void peak_internal_forces (
 			Mz = Mz - 0.5*(Vy_ + Vy)*dx;
 
 			// displacement along frame element "m"
-			Dx = Dx + 0.5*(Nx_ + Nx)/(E[m]*Ax[m])*dx;
+			Dx = Dx + 0.5*(Nx_ + Nx)/(E*Ax)*dx;
 
 			// torsional rotation along frame element "m"
-			Rx = Rx + 0.5*(Tx_+Tx)/(G[m]*Jx[m])*dx;
+			Rx = Rx + 0.5*(Tx_+Tx)/(G*Jx)*dx;
 
 			// transverse slope along frame element "m"
-			Sy = Sy + 0.5*(Mz_ + Mz)/(E[m]*Iz[m])*dx;
-			Sz = Sz + 0.5*(My_ + My)/(E[m]*Iy[m])*dx;
+			Sy = Sy + 0.5*(Mz_ + Mz)/(E*Iz)*dx;
+			Sz = Sz + 0.5*(My_ + My)/(E*Iy)*dx;
 
 			if ( shear ) {
-				Sy += Vy/(G[m]*Asy[m]);
-				Sz += Vz/(G[m]*Asz[m]);
+				Sy += Vy/(G*Asy);
+				Sz += Vz/(G*Asz);
 			}
 
 			// displacement along frame element "m"
@@ -2773,15 +2809,20 @@ void peak_internal_forces (
  */
 void write_internal_forces (
 		char OUT_file[],
-		FILE *fp, char infcpath[], int lc, int nL, char title[], float dx,
+		FILE *fp, char infcpath[], int lc, char title[], float dx,
 		vec3 *xyz,
-		double **Q, int nN, int nE, double *L, int *J1, int *J2,
-		float *Ax,float *Asy,float *Asz,float *Jx,float *Iy,float *Iz,
-		float *E, float *G, float *p,
+		double **Q, double *L, int *J1, int *J2,
+		float *p,
 		float *d, float gX, float gY, float gZ,
 		int nU, float **U, int nW, float **W, int nP, float **P,
-		double *D, int shear, double error
+		double *D, int shear, double error,
+		Frame *frame, LoadCases *load_cases
 ){
+	// Hookup the old variable names
+	const int nN = frame->nodes.size;
+	const int nE = frame->edges.size;
+	const int nL = load_cases->size;
+
 	double	t1, t2, t3, t4, t5, t6, t7, t8, t9, /* coord transformation */
 		u1, u2, u3, u4, u5, u6, u7, u8, u9, u10, u11, u12; /* displ. */
 
@@ -2879,6 +2920,17 @@ void write_internal_forces (
 */
 
 	for ( m=1; m <= nE; m++ ) {	// loop over all frame elements
+		const Edge *edge = &frame->edges.data[m - 1];
+		const Profile *profile = edge->profile;
+		const Material *material = edge->material;
+		const float Ax = profile->Ax;
+		const float Asy = profile->Asy;
+		const float Asz = profile->Asz;
+		const float Iy = profile->Iy;
+		const float Iz = profile->Iz;
+		const float Jx = profile->Jx;
+		const float E = material->E;
+		const float G = material->G;
 
 		n1 = J1[m];	n2 = J2[m]; // node 1 and node 2 of elmnt m
 
@@ -2918,9 +2970,9 @@ void write_internal_forces (
 			&t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, p[m] );
 
 		// distributed gravity load in local x, y, z coordinates
-		wxg = d[m]*Ax[m]*(t1*gX + t2*gY + t3*gZ);
-		wyg = d[m]*Ax[m]*(t4*gX + t5*gY + t6*gZ);
-		wzg = d[m]*Ax[m]*(t7*gX + t8*gY + t9*gZ);
+		wxg = d[m]*Ax*(t1*gX + t2*gY + t3*gZ);
+		wyg = d[m]*Ax*(t4*gX + t5*gY + t6*gZ);
+		wzg = d[m]*Ax*(t7*gX + t8*gY + t9*gZ);
 
 		// add uniformly-distributed loads to gravity load
 		for (n=1; n<=nE && cU<nU; n++) {
@@ -3065,7 +3117,7 @@ void write_internal_forces (
 		dx_ = dx;
 		for (i=1; i<=nx; i++) {
 			if (i==nx)	dx_ = dxnx;
-			Dx[i] = Dx[i-1] + 0.5*(Nx[i-1]+Nx[i])/(E[m]*Ax[m])*dx_;
+			Dx[i] = Dx[i-1] + 0.5*(Nx[i-1]+Nx[i])/(E*Ax)*dx_;
 		}
 		// linear correction of axial displacement for bias in trapezoidal integration
 		for (i=1; i<=nx; i++) {
@@ -3076,7 +3128,7 @@ void write_internal_forces (
 		dx_ = dx;
 		for (i=1; i<=nx; i++) {
 			if (i==nx)	dx_ = dxnx;
-			Rx[i] = Rx[i-1] + 0.5*(Tx[i-1]+Tx[i])/(G[m]*Jx[m])*dx_;
+			Rx[i] = Rx[i-1] + 0.5*(Tx[i-1]+Tx[i])/(G*Jx)*dx_;
 		}
 		// linear correction of torsional rot'n for bias in trapezoidal integration
 		for (i=1; i<=nx; i++) {
@@ -3087,8 +3139,8 @@ void write_internal_forces (
 		dx_ = dx;
 		for (i=1; i<=nx; i++) {
 			if (i==nx)	dx_ = dxnx;
-			Sy[i] = Sy[i-1] + 0.5*(Mz[i-1]+Mz[i])/(E[m]*Iz[m])*dx_;
-			Sz[i] = Sz[i-1] + 0.5*(My[i-1]+My[i])/(E[m]*Iy[m])*dx_;
+			Sy[i] = Sy[i-1] + 0.5*(Mz[i-1]+Mz[i])/(E*Iz)*dx_;
+			Sz[i] = Sz[i-1] + 0.5*(My[i-1]+My[i])/(E*Iy)*dx_;
 		}
 		// linear correction for bias in trapezoidal integration
 		for (i=1; i<=nx; i++) {
@@ -3097,8 +3149,8 @@ void write_internal_forces (
 		}
 		if ( shear ) {		// add-in slope due to shear deformation
 			for (i=0; i<=nx; i++) {
-				Sy[i] += Vy[i]/(G[m]*Asy[m]);
-				Sz[i] += Vz[i]/(G[m]*Asz[m]);
+				Sy[i] += Vy[i]/(G*Asy);
+				Sz[i] += Vz[i]/(G*Asz);
 			}
 		}
 		// displacement along frame element "m"

@@ -263,10 +263,9 @@ void read_condensation_data(
  */
 void write_input_data(
 	FILE *fp,	/**< input data file pointer			*/
-	char *title, int nN, int nE,  int nL,
+	char *title,
 	int *nD, int nR,
 	int *nF, int *nU, int *nW, int *nP, int *nT,
-	vec3 *xyz,
 	float *p, float *d,
 	double **Ft, double **Fm, float **Dp,
 	int *R,
@@ -284,10 +283,11 @@ void write_input_data(
  */
 void write_static_results(
 	FILE *fp,
-	int nN, int nE, int nL, int lc, int DoF,
+	int lc, int DoF,
 	int *N1, int *N2,
 	double *F, double *D, double *R, int *r, double **Q,
-	double err, int ok, int axial_sign
+	double err, int ok, int axial_sign,
+	Frame *frame, LoadCases *load_cases
 );
 
 
@@ -306,10 +306,11 @@ void CSV_filename( char CSV_file[], char wa[], char OUT_file[], int lc );
  */
 void write_static_csv(
 	char *OUT_file, char *title,
-	int nN, int nE, int nL, int lc, int DoF,
+	int lc, int DoF,
 	int *N1, int *N2,
 	double *F, double *D, double *R, int *r, double **Q,
-	double err, int ok
+	double err, int ok,
+	Frame *frame, LoadCases *load_cases
 );
 
 
@@ -321,10 +322,11 @@ void write_static_csv(
  */
 void write_static_mfile(
 	char *OUT_file, char *title,
-	int nN, int nE, int nL, int lc, int DoF,
+	int lc, int DoF,
 	int *N1, int *N2,
 	double *F, double *D, double *R, int *r, double **Q,
-	double err, int ok
+	double err, int ok,
+	Frame *frame, LoadCases *load_cases
 );
 
 
@@ -337,11 +339,9 @@ void write_static_mfile(
  */
 void peak_internal_forces (
         int lc,         // load case number
-        int nL,         // total number of load cases
         vec3 *xyz,      // node locations
-        double **Q, int nN, int nE, double *L, int *N1, int *N2,
-        float *Ax,float *Asy,float *Asz,float *Jx,float *Iy,float *Iz,
-        float *E, float *G, float *p,
+        double **Q, double *L, int *N1, int *N2,
+        float *p,
         float *d, float gX, float gY, float gZ,
         int nU, float **U, int nW, float **W, int nP, float **P,
         double *D, int shear,
@@ -352,7 +352,8 @@ void peak_internal_forces (
         double **pkNx, double **pkVy, double **pkVz,
         double **pkTx, double **pkMy, double **pkMz,
         double **pkDx, double **pkDy, double **pkDz,
-        double **pkRx, double **pkSy, double **pkSz
+        double **pkRx, double **pkSy, double **pkSz,
+	Frame *frame, LoadCases *load_cases
 );
 
 
@@ -368,20 +369,12 @@ void write_internal_forces(
 	FILE *fp,	/**< pointer to output data file		*/
 	char infcpath[],/**< interior force data file			*/
 	int lc,		/**< load case number				*/
-	int nL,		/**< number of static load cases		*/
 	char title[],	/**< title of the analysis			*/
 	float dx,	/**< increment distance along local x axis      */
 	vec3 *xyz,	/**< XYZ locations of each node                */
 	double **Q,	/**< frame element end forces                   */
-	int nN,		/**< number of nodes                           */
-	int nE,		/**< number of frame elements                   */
 	double *L,	/**< length of each frame element               */
 	int *N1, int *N2, /**< node connectivity                       */
-	float *Ax,	/**< cross sectional area                       */
-	float *Asy, float *Asz,	/**< effective shear area               */
-	float *Jx, 	/**< torsional moment of inertia 	         */
-	float *Iy, float *Iz,	/**< bending moment of inertia          */
-	float *E, float *G,	/**< elastic and shear modulii          */
 	float *p,	/**< roll angle, radians                        */
 	float *d,	/**< mass density                               */
 	float gX, float gY, float gZ,	/**< gravitational acceleration */
@@ -393,7 +386,9 @@ void write_internal_forces(
 	float **P,	/**< internal point load data                   */
 	double *D,	/**< node displacements                        */
 	int shear,	/**< shear deformation flag                     */
-	double error	/**< RMS equilibrium error			*/
+	double error,	/**< RMS equilibrium error			*/
+	Frame *frame,
+	LoadCases *load_cases
 );
 
 

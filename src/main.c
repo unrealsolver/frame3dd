@@ -443,8 +443,8 @@ For compilation/installation, see README.txt.
 	}
 
 	write_input_data(
-		fp, title, nN, nE, nL, nD, nR, nF, nU, nW, nP, nT,
-		xyz, p, d,
+		fp, title, nD, nR, nF, nU, nW, nP, nT,
+		p, d,
 		F_temp, F_mech, Dp, r, U, W, P, T,
 		shear, anlyz, geom, frame, load_cases
 	);
@@ -621,17 +621,17 @@ For compilation/installation, see README.txt.
 			/*  display RMS equilibrium error */
 			if ( verbose && ok >= 0 ) evaluate ( error, rms_resid, tol );
 
-			write_static_results ( fp, nN,nE,nL, lc, DoF, N1,N2,
-					F,D,R, r,Q, rms_resid, ok, axial_sign );
+			write_static_results ( fp, lc, DoF, N1,N2,
+					F,D,R, r,Q, rms_resid, ok, axial_sign, frame, load_cases );
 
 			if ( filetype == 1 ) {		// .CSV format output
 				write_static_csv(OUT_file, title,
-				    nN,nE,nL,lc, DoF, N1,N2, F,D,R, r,Q, error, ok );
+				    lc, DoF, N1,N2, F,D,R, r,Q, error, ok, frame, load_cases );
 			}
 
 			if ( filetype == 2 ) {		// .m matlab format output
-				write_static_mfile (OUT_file, title, nN,nE,nL,lc, DoF,
-						N1,N2, F,D,R, r,Q, error, ok );
+				write_static_mfile (OUT_file, title, lc, DoF,
+						N1,N2, F,D,R, r,Q, error, ok, frame, load_cases);
 			}
 
 /*
@@ -642,12 +642,12 @@ For compilation/installation, see README.txt.
  * 			 " and re-run the analysis. \n");
  */
 
-			write_internal_forces ( OUT_file, fp, infcpath, lc, nL, title, dx, xyz,
-						Q, nN, nE, L, N1, N2,
-						Ax, Asy, Asz, Jx, Iy, Iz, E, G, p,
+			write_internal_forces ( OUT_file, fp, infcpath, lc, title, dx, xyz,
+						Q, L, N1, N2,
+						p,
 						d, gX[lc], gY[lc], gZ[lc],
 						nU[lc],U[lc],nW[lc],W[lc],nP[lc],P[lc],
-						D, shear, error );
+						D, shear, error, frame, load_cases );
 
 			static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
 						nN, nE, lc, DoF,
