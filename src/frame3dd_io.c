@@ -391,7 +391,7 @@ void read_node_data( FILE *fp, vec3 *xyz, float *r, Frame *frame )
  */
 void read_frame_element_data (
 	FILE *fp,
-	int nN, int nE, vec3 *xyz, float *r,
+	vec3 *xyz, float *r,
 	double *L, double *Le,
 	int *N1, int *N2,
 	float *Ax, float *Asy, float *Asz,
@@ -402,6 +402,10 @@ void read_frame_element_data (
 	int	*epn, epn0=0;	/* vector of elements per node */
 	int	sfrv=0;		/* *scanf return value */
 	char	errMsg[MAXL];
+
+	// Hook up the old variable names
+	const int nN = frame->nodes.size;
+	const int nE = frame->edges.size;
 
 	epn = ivector(1,nN);
 

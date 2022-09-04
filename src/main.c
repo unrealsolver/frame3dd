@@ -318,7 +318,7 @@ For compilation/installation, see README.txt.
 	p   =  vector(1,nE);	/* element rotation angle about local x axis */
 	d   =  vector(1,nE);	/* element mass density			*/
 
-	read_frame_element_data( fp, nN, nE, xyz,rj, L, Le, N1, N2,
+	read_frame_element_data( fp, xyz,rj, L, Le, N1, N2,
 					Ax, Asy, Asz, Jx, Iy, Iz, E, G, p, d, frame );
 	if ( verbose) 	fprintf(stdout," ... complete\n");
 

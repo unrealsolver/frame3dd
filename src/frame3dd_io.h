@@ -114,8 +114,6 @@ void read_node_data (
 */
 void read_frame_element_data (
 	FILE *fp,	/**< input data file pointer			*/
-	int nN,		/**< number of nodes				*/
-	int nE,		/**< number of frame elements			*/
 	vec3 *xyz,	/**< XYZ coordinates of each node		*/
 	float *rj,	/**< rigid radius of each node			*/
 	double *L, double *Le,	/**< length of each frame element, effective */
