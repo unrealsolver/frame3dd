@@ -268,10 +268,10 @@ For compilation/installation, see README.txt.
 
 					/* allocate memory for node data ... */
 	rj  =  vector(1,nN);		/* rigid radius around each node */
-	xyz = (vec3 *)malloc(sizeof(vec3)*(1+nN));	/* node coordinates */
+	xyz = (vec3 *) calloc(nN + 1, sizeof(vec3));	/* node coordinates */
 	frame->nodes.size = nN;
 	// FIXME deallocte
-	frame->nodes.data = (Node *) malloc(sizeof(Node) * nN);
+	frame->nodes.data = (Node *) calloc(nN, sizeof(Node));
 
 	read_node_data(fp, xyz, rj, frame);
 	if ( verbose )	printf(" ... complete\n");
@@ -297,7 +297,7 @@ For compilation/installation, see README.txt.
 
 	frame->edges.size = nE;
 	// FIXME deallocte
-	frame->edges.data = (Edge *) malloc(sizeof(Edge) * nE);
+	frame->edges.data = (Edge *) calloc(nE, sizeof(Edge));
 
 				/* allocate memory for frame elements ... */
 	L   = dvector(1,nE);	/* length of each element		*/
@@ -347,7 +347,7 @@ For compilation/installation, see README.txt.
 	}
 
 	// FIXME Deallocate
-	load_cases->data = (LoadCase *) malloc(sizeof(LoadCase) * nL);
+	load_cases->data = (LoadCase *) calloc(nL, sizeof(LoadCase));
 	for (unsigned i = 0; i < nL; i++) {
 		load_cases->data[i].loads.point.size = 0;
 		load_cases->data[i].loads.uniform.size = 0;

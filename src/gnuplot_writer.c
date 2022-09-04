@@ -190,7 +190,7 @@ void cubic_bent_beam(
 inline void write_header(
 	FILE *fpm, char *title,
 	vec3 *xyz, int *N1, int *N2,
-	float scale, char D3, time_t now, Frame *frame
+	float scale, char D3, time_t now, const Frame *frame
 ) {
 	int j, m, n1, n2 = 0;
 	double	mx, my, mz; /* coordinates of the frame element number labels */
@@ -368,7 +368,7 @@ void static_mesh(
 		exit(255);
 	}
 
-	LoadCase load_case = load_cases->data[lc - 1];
+	const LoadCase load_case = load_cases->data[lc - 1];
 
 	// Draw static force arrows
 	for (unsigned i = 0; i < load_case.loads.point.size; i++) {

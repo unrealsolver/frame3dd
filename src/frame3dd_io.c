@@ -1019,7 +1019,7 @@ void read_and_assemble_loads (
 
 
 	load_case->loads.point.size = nF[lc];
-	load_case->loads.point.data = (PointLoad *) malloc(sizeof(PointLoad) * nF[lc]);
+	load_case->loads.point.data = (PointLoad *) calloc(nF[lc], sizeof(PointLoad));
 
 	for (i=1; i <= nF[lc]; i++) {	/* ! global structural coordinates ! */
 		sfrv=fscanf(fp,"%d", &j);
@@ -1068,7 +1068,7 @@ void read_and_assemble_loads (
 	load_case->loads.uniform.size = nU[lc];
 	// Allocate space for uniform load data
 	for (i = 0; i < nL; i++) {
-		load_case->loads.uniform.data = (UniformLoad *) malloc(sizeof(UniformLoad) * nU[i]);
+		load_case->loads.uniform.data = (UniformLoad *) calloc(nU[i], sizeof(UniformLoad));
 	}
 
 	for (i=1; i <= nU[lc]; i++) {	/* ! local element coordinates ! */
@@ -1948,8 +1948,8 @@ void write_input_data (
 	else		fprintf(fp,"  Neglect geometric stiffness.\n");
 
 	for (lc = 1; lc <= nL; lc++) {		/* start load case loop */
-	  LoadCase load_case = load_cases->data[lc - 1];
-	  vec3 gravity = load_case.gravity;
+	  const LoadCase load_case = load_cases->data[lc - 1];
+	  const vec3 gravity = load_case.gravity;
 	  fprintf(fp,"\nL O A D   C A S E   %d   O F   %d  ... \n\n", lc,nL);
 	  fprintf(fp,"   Gravity X = ");
 	  if (gravity.x == 0) fprintf(fp," 0.0 "); else fprintf(fp," %.3f ", gravity.x);
@@ -2561,7 +2561,7 @@ void peak_internal_forces (
 		i,		// counter along x axis from node N1 to node N2
 		n1,n2,i1,i2;	// starting and stopping node numbers
 
-	LoadCase *load_case = &load_cases->data[lc - 1];
+	const LoadCase *load_case = &load_cases->data[lc - 1];
 
 	if (dx == -1.0)	return;	// skip calculation of internal forces and displ
 
