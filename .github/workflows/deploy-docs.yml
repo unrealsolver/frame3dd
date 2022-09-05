@@ -38,11 +38,11 @@ jobs:
       - name: Generate Doxygen Documentation
         run: doxygen Doxyfile
       - name: Create .nojekyll (ensures pages with underscores work on gh pages)
-        run: touch docs/.nojekyll
+        run: touch docs/html/.nojekyll
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
-          path: 'docs'
+          path: 'docs/html'
   deploy:
     needs: build
     permissions:
