@@ -39,8 +39,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Install graphviz
-        run: sudo apt-get install graphviz -y
+      - name: Install runtime
+        run: sudo apt-get install graphviz doxygen -y
         shell: bash
       - name: Checkout
         uses: actions/checkout@v3
