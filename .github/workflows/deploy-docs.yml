@@ -27,6 +27,7 @@ jobs:
               - Doxyfile
   build:
     if: needs.get-changes.outputs.changed == 'true'
+    needs: get-changes
     runs-on: ubuntu-latest
     steps:
       - name: Install runtime
@@ -50,6 +51,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
