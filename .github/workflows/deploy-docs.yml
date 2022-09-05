@@ -6,12 +6,6 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-  repository-projects: write
-
 concurrency:
   group: 'pages'
   cancel-in-progress: true
@@ -31,13 +25,9 @@ jobs:
               - '.github/workflows/deploy-docs.yml'
               - 'src/**/*.{c,h}'
               - Doxyfile
-  build-and-deploy:
+  build:
     if: needs.get-changes.outputs.changed == 'true'
-    needs: get-changes
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Install runtime
         run: sudo apt-get install graphviz doxygen -y
@@ -52,6 +42,14 @@ jobs:
         uses: actions/upload-pages-artifact@v1
         with:
           path: 'docs'
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v1.0.10
