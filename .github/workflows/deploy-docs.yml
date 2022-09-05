@@ -13,7 +13,7 @@ permissions:
   repository-projects: write
 
 concurrency:
-  group: "pages"
+  group: 'pages'
   cancel-in-progress: true
 
 jobs:
@@ -28,42 +28,30 @@ jobs:
         with:
           filters: |
             src:
+              - '.github/workflows/deploy-docs.yml'
               - 'src/**/*.{c,h}'
               - Doxyfile
-  build:
+  build-and-deploy:
     if: needs.get-changes.outputs.changed == 'true'
     needs: get-changes
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Install graphviz
         run: sudo apt-get install graphviz -y
         shell: bash
-      # FIXME build to artifact rather than gh branch
-      - uses: DenverCoder1/doxygen-github-pages-action@v1.1.0
-        id: deployment
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-  # Single deploy job since we're just deploying
-  deploy:
-    needs: build
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          # FIXME use artifacts
-          ref: gh-pages
-      - name: Setup Pages
-        uses: actions/configure-pages@v2
+      - name: Generate Doxygen Documentation
+        run: doxygen Doxyfile
+      - name: Create .nojekyll (ensures pages with underscores work on gh pages)
+        run: touch docs/.nojekyll
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
-          # Upload entire repository
-          path: '.'
+          path: 'docs'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v1
