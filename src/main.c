@@ -192,15 +192,6 @@ For compilation/installation, see README.txt.
 
 	char	extension[16];	// Input Data file name extension
 
-	RunOptions conf;
-	// Copy to config
-	conf.simulation.x_step = dx;
-	conf.simulation.geom_nonlinear_mode = geom;
-	conf.simulation.shear_mode = shear;
-	// TODO Validate this line
-	conf.visual.exagg_amount = exagg_flag;
-	conf.visual.scale = scale;
-
 	Frame *frame = (Frame *) malloc(sizeof(Frame));
         LoadCases *load_cases = (LoadCases *) malloc(sizeof(LoadCases));
 
@@ -650,7 +641,7 @@ For compilation/installation, see README.txt.
 						D, shear, error, frame, load_cases );
 
 			static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
-						nN, nE, lc, DoF,
+						lc, DoF,
 						xyz, L, N1,N2, p, D,
 						exagg_static, D3_flag, anlyz,
 						dx, scale, load_cases, frame );
@@ -664,7 +655,7 @@ For compilation/installation, see README.txt.
 
 		static_mesh(
 			IN_file, infcpath, meshpath, plotpath, title,
-			nN, nE, lc, DoF,
+			lc, DoF,
 			xyz, L, N1,N2, p, D,
 			exagg_static, D3_flag, anlyz,
 			dx, scale, load_cases, frame
@@ -718,9 +709,9 @@ For compilation/installation, see README.txt.
 
 			for (j=1; j<=nM_calc; j++) f[j] = sqrt(f[j])/(2.0*PI);
 
-			write_modal_results ( fp, nN,nE,nI, DoF, M,f,V,
+			write_modal_results ( fp, nI, DoF, M,f,V,
 					total_mass, struct_mass,
-					iter, sumR, nM, shift, lump, tol, ok );
+					iter, sumR, nM, shift, lump, tol, ok, frame );
 		}
 	}
 
@@ -729,12 +720,12 @@ For compilation/installation, see README.txt.
 
 	if ( nM > 0 && anlyz ) {	/* write modal analysis results */
 		modal_mesh ( IN_file, meshpath, modepath, plotpath, title,
-				nN,nE, DoF, nM, xyz, L, N1,N2, p,
-				M, f, V, exagg_modal, D3_flag, anlyz );
+				DoF, nM, xyz, L, N1,N2, p,
+				M, f, V, exagg_modal, D3_flag, anlyz, frame );
 
 		animate ( IN_file, meshpath, modepath, plotpath, title,anim,
-				nN,nE, DoF, nM, xyz, L, p, N1,N2, f,
-				V, exagg_modal, D3_flag, pan, scale );
+				DoF, nM, xyz, L, p, N1,N2, f,
+				V, exagg_modal, D3_flag, pan, scale, frame );
 	}
 
 	if ( nC > 0 ) {		/* matrix condensation of stiffness and mass */

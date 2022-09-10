@@ -398,11 +398,11 @@ void write_internal_forces(
  */
 void write_modal_results(
 	FILE *fp,
-	int nN, int nE, int nI, int DoF,
+	int nI, int DoF,
 	double **M, double *f, double **V,
 	double total_mass, double struct_mass,
 	int iter, int sumR, int nM,
-	double shift, int lump, double tol, int ok
+	double shift, int lump, double tol, int ok, Frame *frame
 );
 
 

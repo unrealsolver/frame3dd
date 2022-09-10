@@ -2525,9 +2525,7 @@ void peak_internal_forces (
 		Frame *frame, LoadCases *load_cases
 ){
 	// Hookup the old variable names
-	const int nN = frame->nodes.size;
 	const int nE = frame->edges.size;
-	const int nL = load_cases->size;
 
 	double	t1, t2, t3, t4, t5, t6, t7, t8, t9, /* coord transformation */
 		u1, u2, u3, u4, u5, u6, u7, u8, u9, u10, u11, u12; /* displ. */
@@ -2560,8 +2558,6 @@ void peak_internal_forces (
 		cU=0, cW=0, cP=0, // counters for U, W, and P loads
 		i,		// counter along x axis from node N1 to node N2
 		n1,n2,i1,i2;	// starting and stopping node numbers
-
-	const LoadCase *load_case = &load_cases->data[lc - 1];
 
 	if (dx == -1.0)	return;	// skip calculation of internal forces and displ
 
@@ -2819,7 +2815,6 @@ void write_internal_forces (
 		Frame *frame, LoadCases *load_cases
 ){
 	// Hookup the old variable names
-	const int nN = frame->nodes.size;
 	const int nE = frame->edges.size;
 	const int nL = load_cases->size;
 
@@ -3271,12 +3266,15 @@ void write_internal_forces (
  */
 void write_modal_results(
 		FILE *fp,
-		int nN, int nE, int nI, int DoF,
+		int nI, int DoF,
 		double **M, double *f, double **V,
 		double total_mass, double struct_mass,
 		int iter, int sumR, int nM,
-		double shift, int lump, double tol, int ok
+		double shift, int lump, double tol, int ok, Frame *frame
 ){
+	// Hookup the old variable names
+	const int nN = frame->nodes.size;
+
 	int	i, j, k, m, num_modes;
 	double	mpfX, mpfY, mpfZ,	/* mode participation factors	*/
 		*msX, *msY, *msZ;

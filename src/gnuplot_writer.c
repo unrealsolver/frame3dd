@@ -244,9 +244,9 @@ inline void write_header(
 
 /* Part of static_mesh */
 inline void writer_undeformed_mesh(
-	char meshpath[], FILE *fpm, char *title, int nE,
+	char meshpath[], FILE *fpm, char *title,
 	vec3 *xyz, int *N1, int *N2,
-	time_t now, char *errMsg
+	time_t now, char *errMsg, Frame *frame
 ) {
 	int m, n;
 	// open the undeformed mesh data file for writing
@@ -263,7 +263,7 @@ inline void writer_undeformed_mesh(
 	fprintf(fpm,"# U N D E F O R M E D   M E S H   D A T A   (global coordinates)\n");
 	fprintf(fpm,"# Node        X            Y            Z \n");
 
-	for (m=1; m<=nE; m++) {
+	for (m=1; m <= frame->edges.size; m++) {
 		n = N1[m];	// i = 6*(n-1);
 		fprintf (fpm,"%5d %12.4e %12.4e %12.4e \n",
 					n , xyz[n].x , xyz[n].y , xyz[n].z );
@@ -287,13 +287,17 @@ inline void writer_undeformed_mesh(
 void static_mesh(
 		char IN_file[],
 		char infcpath[], char meshpath[], char plotpath[],
-		char *title, int nN, int nE, int lc, int DoF,
+		char *title, int lc, int DoF,
 		vec3 *xyz, double *L,
 		int *N1, int *N2, float *p, double *D,
 		double exagg_static, int D3_flag, int anlyz, float dx, float scale,
 		LoadCases *load_cases,
 		Frame *frame
 ){
+	// Hookup the old variable names
+	const int nN = frame->nodes.size;
+	const int nE = frame->edges.size;
+
 	FILE	*fpif=NULL, *fpm=NULL;
 	char	fnif[FILENMAX], meshfl[FILENMAX],
 		D2='#', D3='#',	/* indicates plotting in 2D or 3D	*/
@@ -404,7 +408,7 @@ void static_mesh(
 
 	// write undeformed mesh data
 	if (lc <= 1) {
-		writer_undeformed_mesh(meshpath, fpm, title, nE, xyz, N1, N2, now, errMsg);
+		writer_undeformed_mesh(meshpath, fpm, title, xyz, N1, N2, now, errMsg, frame);
 	}
 
 	if (!anlyz) return; // no deformed mesh
@@ -480,12 +484,16 @@ void static_mesh(
 void modal_mesh(
 		char IN_file[], char meshpath[], char modepath[],
 		char plotpath[], char *title,
-		int nN, int nE, int DoF, int nM,
+		int DoF, int nM,
 		vec3 *xyz, double *L,
 		int *J1, int *J2, float *p,
 		double **M, double *f, double **V,
-		double exagg_modal, int D3_flag, int anlyz
+		double exagg_modal, int D3_flag, int anlyz, Frame *frame
 ){
+	// Hookup the old variable names
+	const int nN = frame->nodes.size;
+	const int nE = frame->edges.size;
+
 	FILE	*fpm;
 	double mpfX, mpfY, mpfZ;	/* mode participation factors	*/
 	double *msX, *msY, *msZ;
@@ -610,13 +618,18 @@ void animate(
 	char IN_file[], char meshpath[], char modepath[], char plotpath[],
 	char *title,
 	int anim[],
-	int nN, int nE, int DoF, int nM,
+	int DoF, int nM,
 	vec3 *xyz, double *L, float *p,
 	int *J1, int *J2, double *f, double **V,
 	double exagg_modal, int D3_flag,
 	float pan,		/* pan rate for animation	     */
-	float scale		/* inital zoom scale in 3D animation */
+	float scale,		/* inital zoom scale in 3D animation */
+	Frame *frame
 ){
+	// Hookup the old variable names
+	const int nN = frame->nodes.size;
+	const int nE = frame->edges.size;
+
 	FILE	*fpm;
 
 	float	x_min = 0.0, x_max = 0.0,

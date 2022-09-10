@@ -75,7 +75,7 @@ void cubic_bent_beam(
 void static_mesh(
 	char OUT_file[],
 	char infcpath[], char meshpath[], char plotpath[],
-	char *title, int nN, int nE, int lc, int DoF,
+	char *title, int lc, int DoF,
 	vec3 *xyz, double *L,
 	int *N1, int *N2, float *p, double *D,
 	double exagg_static, int D3_flag, int anlyz, float dx, float scale,
@@ -92,11 +92,12 @@ void static_mesh(
 void modal_mesh(
 	char OUT_file[], char meshpath[], char modepath[],
 	char plotpath[], char *title,
-	int nN, int nE, int DoF, int nM,
+	int DoF, int nM,
 	vec3 *xyz, double *L,
 	int *N1, int *N2, float *p,
 	double **M, double *f, double **V,
-	double exagg_modal, int D3_flag, int anlyz
+	double exagg_modal, int D3_flag, int anlyz,
+	Frame *frame
 );
 
 
@@ -111,10 +112,11 @@ void animate(
 	char OUT_file[], char meshpath[], char modepath[], char plotpath[],
 	char *title,
 	int anim[],
-	int nN, int nE, int DoF, int nM,
+	int DoF, int nM,
 	vec3 *xyz, double *L, float *p,
 	int *N1, int *N2, double *f, double **V,
-	double exagg_modal, int D3_flag, float pan, float scale
+	double exagg_modal, int D3_flag, float pan, float scale,
+	Frame *frame
 );
 
 
