@@ -1,5 +1,5 @@
 /******************************************************************************
- preframe.c  -  interactive data input for frame analysis program 
+ preframe.c  -  interactive data input for frame analysis program
 	to compile:	gcc -O -o preframe preframe.c
 	to run:		preframe  output_file
  David Hoang, Duke University, April, 1997
@@ -25,7 +25,7 @@ int	nJ=0,	/* number of joints				*/
 	nM=0,	/* number of members				*/
 	nF=0,	/* number of joint loads			*/
 	nW=0,	/* number of distributed member loads		*/
-	nP=0,	/* number of concentrated member loads		*/ 
+	nP=0,	/* number of concentrated member loads		*/
 	nT=0,	/* number of thermal loads			*/
 	nR=0,	/* number of supported joints (reactions)	*/
 	nD=0;	/* number of prescribed displacements		*/
@@ -33,12 +33,12 @@ int	nJ=0,	/* number of joints				*/
 void main(argc, argv)
 int	 argc;
 char    *argv[];
-{ 
+{
  char	ans;
  int	j, m;		/* a joint number, a member number	*/
- float	x, y, z, r;	/* joint coordinates 			*/  
+ float	x, y, z, r;	/* joint coordinates 			*/
 
- int    J1, J2;		/* member location joints		*/ 
+ int    J1, J2;		/* member location joints		*/
  float  Ax, Ay, Az;	/* member cross section area properties	*/
  float  Jp, Iy, Iz;	/* member cross section inertia prop's	*/
  float	E,G;		/* member material property constants	*/
@@ -51,13 +51,13 @@ char    *argv[];
 	  exit(0);
      }
  } else {
-	  fprintf (stderr," usage: preframe output_file\n"); 
+	  fprintf (stderr," usage: preframe output_file\n");
 	  exit(0);
  }
 
 /********* Start Execution  **********/
 
- do {	 
+ do {
 	printf("How many  joints do you have?  ");	scanf ("%d",&nJ);
 	printf("How many members do you have?  ");	scanf ("%d",&nM);
 	printf("\n\t%5d joints   %5d members ", nJ, nM );
@@ -70,7 +70,7 @@ char    *argv[];
 
  printf("\nFor each joint, enter its x,y,z coordinates and its radius, r .\n");
  for (j=1; j<=nJ ; j++) {
-    do { 
+    do {
 	printf("\n For joint %i, enter coordinate values ... \n", j );
 	printf("   input x[%i] : ",j);	scanf ("%f",&x);
 	printf("   input y[%i] : ",j);	scanf ("%f",&y);
@@ -104,14 +104,14 @@ char    *argv[];
     printf("    shear  elastic modulus,    G[%i] : ",m); scanf ("%f", &G);
     printf(" J1   J2    Ax    Ay    Az     Jp     Iy     Iz     E       G \n");
     printf("---- ---- ----- ----- ----- ------ ------ ------ ------- -------");
-    printf("\n%4d %4d %5.1f %5.1f %5.1f %6.1f %6.1f %6.1f %7.1f %7.1f \n", 
+    printf("\n%4d %4d %5.1f %5.1f %5.1f %6.1f %6.1f %6.1f %7.1f %7.1f \n",
 					J1, J2, Ax, Ay, Az, Jp, Iy, Iz, E, G );
     printf("\t\t\t\t\t\t     ... Is this okay? (y/n) "); scanf ("%s", &ans);
-   } while( ans != 'y' || J1 > nJ || J2 > nJ || E == 0 ); 
- 
+   } while( ans != 'y' || J1 > nJ || J2 > nJ || E == 0 );
+
    fprintf(fpout,"%4d %4d %4d %7.1f %7.1f %7.1f", m, J1, J2, Ax, Ay, Az );
    fprintf(fpout,"%7.1f %7.1f %7.1f %7.1f %7.1f\n", Jp, Iy, Iz, E, G );
- } 
+ }
 
  file_names();
  joint_loads();
@@ -236,7 +236,7 @@ void distrb_loads(void)
 	scanf("%s", &ans);
  } while( ans != 'y' || nW < 0 );
 
- fprintf(fpout,"\n%d\n", nW); 
+ fprintf(fpout,"\n%d\n", nW);
 
  for (f=1; f<=nW ; f++) {
     do {
@@ -265,7 +265,7 @@ void concen_loads (void)
 {
  char	ans;
  int	m=0,f=0;
- float	Px, Py, Pz, x;  
+ float	Px, Py, Pz, x;
 
  printf ("\nYour frame may have point loads on the members.\n");
  printf("Point loads are specified by their values in member coordinates");
@@ -279,7 +279,7 @@ void concen_loads (void)
 	scanf("%s", &ans);
  } while( ans != 'y' || nP < 0 );
 
- fprintf(fpout,"\n%d\n", nP); 
+ fprintf(fpout,"\n%d\n", nP);
 
  for (f=1; f<=nP ; f++) {
     do {
@@ -300,7 +300,7 @@ void concen_loads (void)
 	printf("\t\t\t\t\t\t     ... Is this okay? (y/n) "); scanf("%s", &ans);
     } while( ans != 'y' || m < 1 || m > nM );
     fprintf(fpout,"%4d  %f  %f  %f  %f\n",m, Px, Py, Pz, x);
- }  
+ }
 } /* end Function concen_loads */
 
 
@@ -325,7 +325,7 @@ void temperature(void)
 	printf("\t\t     ... Is this okay? (y/n) ");	scanf("%s", &ans);
  } while( ans != 'y' || nT < 0 || nT > nM );
 
- fprintf(fpout,"\n%d\n", nT); 
+ fprintf(fpout,"\n%d\n", nT);
 
  for ( t=1; t <= nT; t++ ) {
     do {
@@ -354,7 +354,7 @@ void temperature(void)
     } while( ans != 'y' || m < 1 || m > nM );
     fprintf(fpout,"%4d %.4e %.3f %.3f %.3f %.3f %.3f %.3f \n",
 				m, a, hy, hz, Typls, Tymin, Tzpls, Tzmin );
- }  
+ }
 } /* end function temperature */
 
 /***** Reactions *****/
@@ -375,7 +375,7 @@ void reactions(void)
  fprintf(fpout,"\n%d\n", nR);
 
  for (r=1; r <= nR; r++) {
-   do {  
+   do {
 	printf(" Enter the joint number for reaction number %d : ", r);
 	scanf ("%d", &j);
 	printf(" For joint %d, input values for the ... \n", j);
@@ -397,7 +397,7 @@ void reactions(void)
 	printf("%5d %3d %3d %3d %3d %3d %3d", j, Rx, Ry, Rz, Rxx, Ryy, Rzz );
 	printf("\t\t\t    ... Is this okay? (y/n) ");
 	scanf("%s", &ans);
-   } while( tolower(ans) != 'y' || j < 1 || j > nJ ); 
+   } while( tolower(ans) != 'y' || j < 1 || j > nJ );
    fprintf(fpout,"%4d %3d %3d %3d %3d %3d %3d \n", j, Rx,Ry,Rz, Rxx,Ryy,Rzz );
  }
 }
@@ -407,7 +407,7 @@ void displacements(void)
 {
  int	j, d;
  char	ans;
- float	Dx, Dy, Dz, Dxx, Dyy, Dzz; 
+ float	Dx, Dy, Dz, Dxx, Dyy, Dzz;
 
  printf("\nYou may prescribe a displacement ");
  printf("at any coordinate that has a reaction.\n");
@@ -421,7 +421,7 @@ void displacements(void)
  fprintf(fpout,"\n%d\n", nD);
 
  for (d=1; d <= nD; d++) {
-   do {  
+   do {
 	printf(" Enter the joint number for displacement number %d : ", d);
 	scanf ("%d", &j);
 	printf(" For joint %d, input values for the ... \n", j);
@@ -437,7 +437,7 @@ void displacements(void)
 	printf("%5d %8.5f %8.5f %8.5f %8.6f %8.6f %8.6f \n",
 						j, Dx, Dy, Dz, Dxx, Dyy, Dzz );
 	printf("\t\t\t\t\t\t     ... Is this okay? (y/n) "); scanf("%s", &ans);
-   } while( tolower(ans) == 'n' || j < 1 || j > nJ ); 
+   } while( tolower(ans) == 'n' || j < 1 || j > nJ );
    fprintf(fpout,"%4d %8.5f %8.5f %8.5f %8.6f %8.6f %8.6f \n",
 						j, Dx, Dy, Dz, Dxx, Dyy, Dzz );
  }
@@ -463,7 +463,7 @@ void modal_files(void)
      printf(" Input the convergence tolerance           : ");
      scanf("%f",&tol);
      printf("modes  lump    mode file name       tol \n");
-     printf("-----  ---- -------------------- --------\n"); 
+     printf("-----  ---- -------------------- --------\n");
      printf("%5d  %4d %20s %8.6f", modes, lump, mode_file, tol );
      printf("            ... Is this okay? (y/n) "); scanf("%s", &ans);
  } while( tolower(ans) != 'y' || modes > nJ || tol <= 0 );
@@ -477,16 +477,16 @@ void inertia(void)
  int	m;
  char	ans;
  float	d, Ms;
-	 
+
  printf(" You must specify density and lumped masses for each member\n");
- 
+
  for (m=1; m<=nM ; m++) {
     do {
 	printf(" For member %i, input values for the ...\n", m);
 	printf("   mass density,  d[%i] : ",m);	scanf ("%f",&d );
 	printf("   lumped mass,  Ms[%i] : ",m);	scanf ("%f",&Ms );
 	printf("member	     d             Ms      \n", m, m);
-	printf("------  ------------  ------------ \n"); 
+	printf("------  ------------  ------------ \n");
 	printf("%6d  %12.8f  %12.8f", m, d, Ms );
 	printf("\t\t     ... Is this okay? (y/n) "); scanf("%s", &ans);
     } while ( tolower(ans) != 'y' || (Ms <= 0 && d <= 0) );

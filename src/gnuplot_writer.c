@@ -187,7 +187,7 @@ void cubic_bent_beam(
 
 
 /* Part of static_mesh */
-inline void write_header(
+void write_header(
 	FILE *fpm, char *title,
 	vec3 *xyz, int *N1, int *N2,
 	float scale, char D3, time_t now, const Frame *frame
@@ -243,7 +243,7 @@ inline void write_header(
 }
 
 /* Part of static_mesh */
-inline void writer_undeformed_mesh(
+void writer_undeformed_mesh(
 	char meshpath[], FILE *fpm, char *title,
 	vec3 *xyz, int *N1, int *N2,
 	time_t now, char *errMsg, Frame *frame
