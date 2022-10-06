@@ -146,7 +146,8 @@ void read_run_data (
 	float *dx,	/**< frame element increment for internal forces*/
 	int *anlyz,	/**< 1: perform elastic analysis, 0: don't	*/
 	int anlyz_flag,	/**< command-line over-ride			*/
-	int debug	/**< print debugging information		*/
+	int debug,	/**< print debugging information		*/
+	RunOptions *run_options  /**< RunOptions object          	*/
 );
 
 

@@ -121,19 +121,21 @@ typedef struct {
 // FIXME Refactor
 typedef struct {
 	// TODO Review required
-	float x_step; /**< x-increment for internal force data */
+        // "-1" means no internal frame forces calcilatinons
+	float dx; /**< x-increment for internal force data */
 	// TODO Review required
-	bool shear_mode; /**< Enable shear deformation modeling */
+	bool shear; /**< Enable shear deformation modeling */
 	// TODO Review required
-	bool geom_nonlinear_mode; /**< Enable geometrical nonlinearity modeling */
-
+	bool nonlinear; /**< Enable geometrical nonlinearity modeling */
 } SimulationOptions;
 
 typedef struct {
 	// TODO Review required
-	double exagg_amount; /**< Exaggerate display */
+	double exagg_static; /**< Exaggerate display */
+	double exagg_modal; /**< Exaggerate display */
 	// TODO Review required
 	float scale; /**< zoom scale for 3D plotting in Gnuplot */
+	float pan; /**< >0: pan during animation; 0: don't */
 } VisualizationOptions;
 
 typedef struct {

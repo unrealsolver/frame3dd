@@ -193,7 +193,15 @@ For compilation/installation, see README.txt.
 	char	extension[16];	// Input Data file name extension
 
 	Frame *frame = (Frame *) malloc(sizeof(Frame));
-        LoadCases *load_cases = (LoadCases *) malloc(sizeof(LoadCases));
+	LoadCases *load_cases = (LoadCases *) malloc(sizeof(LoadCases));
+	RunOptions *run_options = (RunOptions *) malloc(sizeof(RunOptions));
+	run_options->simulation.dx = dx;
+	run_options->simulation.nonlinear = geom;
+	run_options->simulation.shear = shear;
+	run_options->visual.pan = pan;
+	run_options->visual.scale = scale;
+	run_options->visual.exagg_static = exagg_static;
+	run_options->visual.exagg_modal = exagg_static;
 
 	parse_options ( argc, argv, IN_file, OUT_file,
 			&shear_flag, &geom_flag, &anlyz_flag, &exagg_flag,
@@ -316,7 +324,7 @@ For compilation/installation, see README.txt.
 	read_run_data ( fp, OUT_file, &shear, shear_flag, &geom, geom_flag,
 			meshpath, plotpath, infcpath,
 			&exagg_static, exagg_flag, &scale, &dx,
-			&anlyz, anlyz_flag, debug );
+			&anlyz, anlyz_flag, debug, run_options );
 
 	sfrv=fscanf(fp, "%d", &nL );	/* number of load cases		*/
 	load_cases->size = nL;

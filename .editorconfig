@@ -9,5 +9,5 @@ insert_final_newline = true
 [*.{c,h}]
 charset = latin1
 trim_trailing_whitespace = true
-ndent_style = tab
+indent_style = tab
 indent_size = 8

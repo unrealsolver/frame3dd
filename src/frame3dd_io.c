@@ -563,7 +563,8 @@ void read_run_data (
 	float	*dx,
 	int	*anlyz,
 	int	anlyz_flag,
-	int	debug
+	int	debug,
+	RunOptions* run_options
 ){
 	int	full_len=0, len=0, i;
 	char	base_file[96] = "EMPTY_BASE";
@@ -624,12 +625,26 @@ void read_run_data (
 	    errorMsg(" Remember to specify a frame element increment greater than zero.\n");
 	    exit(74);
 	}
+	run_options->simulation.shear = *shear;
+	run_options->simulation.nonlinear = *geom;
+	run_options->simulation.dx = *dx;
+	run_options->visual.exagg_static = *exagg_static;
+	run_options->visual.scale = *scale;
 
 	/* over-ride values from input data file with command-line options */
-	if ( shear_flag != -1   )	*shear = shear_flag;
-	if ( geom_flag  != -1   )	*geom = geom_flag;
-	if ( exagg_flag != -1.0 )	*exagg_static = exagg_flag;
-	if ( anlyz_flag != -1.0 )	*anlyz = anlyz_flag;
+	if (shear_flag != -1) {
+		*shear = shear_flag;
+		run_options->simulation.shear = shear_flag;
+	}
+	if (geom_flag  != -1) {
+		*geom = geom_flag;
+		run_options->simulation.nonlinear = geom_flag;
+	}
+	if (exagg_flag != -1.0) {
+		*exagg_static = exagg_flag;
+		run_options->visual.exagg_static = exagg_flag;
+	}
+	if (anlyz_flag != -1.0) *anlyz = anlyz_flag;
 
 	return;
 }
