@@ -790,18 +790,6 @@ For compilation/installation, see README.txt.
 		free_dmatrix(Mc, 1,Cdof,1,Cdof );
 	}
 
-	for (int j = 0; j < load_cases->size; j++) {
-		printf("Load Case %d\n", j);
-		LoadCaseResult *lc_result = &results->data[j];
-		for (int i = 0; i < frame->nodes.size; i++) {
-			NodeDisplacement *disp = &lc_result->displacements[i];
-			printf(
-				"%d:\tNodeDisplacement(x=%.2f, y=%.2f, z=%.2f, xx=%.2f, yy=%.2f, zz=%.2f, )\n",
-				i, disp->pos.x, disp->pos.y, disp->pos.z, disp->rot.x, disp->rot.y, disp->rot.z
-			);
-		}
-	}
-
 	/* deallocate memory used for each frame analysis variable */
 	deallocate ( nN, nE, nL, nF, nU, nW, nP, nT, DoF, nM,
 			xyz, rj, L, Le, N1, N2, q,r,
