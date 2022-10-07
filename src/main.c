@@ -51,6 +51,7 @@ For compilation/installation, see README.txt.
 #include "frame3dd_io.h"
 #include "eig.h"
 #include "gnuplot_writer.h"
+#include "struct_writer.h"
 #include "HPGmatrix.h"
 #include "HPGutil.h"
 #include "NRutil.h"
@@ -194,6 +195,7 @@ For compilation/installation, see README.txt.
 
 	Frame *frame = (Frame *) malloc(sizeof(Frame));
 	LoadCases *load_cases = (LoadCases *) malloc(sizeof(LoadCases));
+	Results *results = (Results *) malloc(sizeof(Results));
 	RunOptions *run_options = (RunOptions *) malloc(sizeof(RunOptions));
 	run_options->simulation.dx = dx;
 	run_options->simulation.nonlinear = geom;
@@ -328,6 +330,7 @@ For compilation/installation, see README.txt.
 
 	sfrv=fscanf(fp, "%d", &nL );	/* number of load cases		*/
 	load_cases->size = nL;
+	results->size = nL;
 
 	if (sfrv != 1)	sferr("nL value for number of load cases");
 	if ( verbose ) {	/* display nL */
@@ -347,9 +350,14 @@ For compilation/installation, see README.txt.
 
 	// FIXME Deallocate
 	load_cases->data = (LoadCase *) calloc(nL, sizeof(LoadCase));
+	// FIXME deallocte
+	results->data = (LoadCaseResult*) calloc(nL, sizeof(LoadCaseResult));
+
 	for (unsigned i = 0; i < nL; i++) {
 		load_cases->data[i].loads.point.size = 0;
 		load_cases->data[i].loads.uniform.size = 0;
+		// FIXME deallocte
+		results->data[i].displacements = calloc(nN, sizeof(NodeDisplacement));
 	}
 
 	U   =  D3matrix(1,nL,1,nE,1,4);    /* uniform load on each member */
@@ -462,6 +470,8 @@ For compilation/installation, see README.txt.
 				color(0);
 				fprintf(stdout,"\n");
 			}
+
+			LoadCaseResult *lc_result = &results->data[lc - 1];
 
 			/*  initialize displacements and displ. increment to {0}  */
 			/*  initialize reactions     and react. increment to {0}  */
@@ -619,6 +629,8 @@ For compilation/installation, see README.txt.
 
 			/*  display RMS equilibrium error */
 			if ( verbose && ok >= 0 ) evaluate ( error, rms_resid, tol );
+
+			write_static_struct(lc_result, frame, D);
 
 			write_static_results ( fp, lc, DoF, N1,N2,
 					F,D,R, r,Q, rms_resid, ok, axial_sign, frame, load_cases );
@@ -778,6 +790,17 @@ For compilation/installation, see README.txt.
 		free_dmatrix(Mc, 1,Cdof,1,Cdof );
 	}
 
+	for (int j = 0; j < load_cases->size; j++) {
+		printf("Load Case %d\n", j);
+		LoadCaseResult *lc_result = &results->data[j];
+		for (int i = 0; i < frame->nodes.size; i++) {
+			NodeDisplacement *disp = &lc_result->displacements[i];
+			printf(
+				"%d:\tNodeDisplacement(x=%.2f, y=%.2f, z=%.2f, xx=%.2f, yy=%.2f, zz=%.2f, )\n",
+				i, disp->pos.x, disp->pos.y, disp->pos.z, disp->rot.x, disp->rot.y, disp->rot.z
+			);
+		}
+	}
 
 	/* deallocate memory used for each frame analysis variable */
 	deallocate ( nN, nE, nL, nF, nU, nW, nP, nT, DoF, nM,
@@ -793,6 +816,7 @@ For compilation/installation, see README.txt.
 
 	free(frame);
 	free(load_cases);
+	free(results);
 
 	if ( verbose ) fprintf(stdout,"\n");
 

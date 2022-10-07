@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "microstran/vec3.h"
 
+
 /* ####### LOAD CASE DATA ####### */
 /* Point load */
 typedef struct {
@@ -42,6 +43,7 @@ typedef struct {
 	unsigned size;
 	LoadCase* data;
 } LoadCases;
+
 
 /* ####### FRAME DATA ####### */
 /* Nodes */
@@ -116,6 +118,7 @@ typedef struct {
 	Edges edges;
 } Frame;
 
+
 /* ####### SIMULATION OPTIONS ####### */
 /* Options */
 // FIXME Refactor
@@ -142,5 +145,21 @@ typedef struct {
 	SimulationOptions simulation;
 	VisualizationOptions visual;
 } RunOptions;
+
+
+/* ####### RESULTS ####### */
+typedef struct {
+	vec3 pos;
+	vec3 rot;
+} NodeDisplacement;
+
+typedef struct {
+	NodeDisplacement* displacements;
+} LoadCaseResult;
+
+typedef struct {
+	LoadCaseResult* data;
+	unsigned size;
+} Results;
 
 #endif /* F3DD_TYPES_H */
