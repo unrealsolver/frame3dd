@@ -154,7 +154,22 @@ typedef struct {
 } NodeDisplacement;
 
 typedef struct {
+	double Nx;
+	double Vy;
+	double Vz;
+	double Txx;
+	double Myy;
+	double Mzz;
+	char Nx_rot; // 'c' or 't'
+} ElementEndForces;
+
+typedef struct {
+	ElementEndForces forces[2];
+} EdgeResult;
+
+typedef struct {
 	NodeDisplacement* displacements;
+	EdgeResult* edges;
 } LoadCaseResult;
 
 typedef struct {

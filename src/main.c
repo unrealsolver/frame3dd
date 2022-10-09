@@ -358,6 +358,8 @@ For compilation/installation, see README.txt.
 		load_cases->data[i].loads.uniform.size = 0;
 		// FIXME deallocte
 		results->data[i].displacements = calloc(nN, sizeof(NodeDisplacement));
+		// FIXME deallocte
+		results->data[i].edges = calloc(nE, sizeof(EdgeResult));
 	}
 
 	U   =  D3matrix(1,nL,1,nE,1,4);    /* uniform load on each member */
@@ -630,7 +632,7 @@ For compilation/installation, see README.txt.
 			/*  display RMS equilibrium error */
 			if ( verbose && ok >= 0 ) evaluate ( error, rms_resid, tol );
 
-			write_static_struct(lc_result, frame, D);
+			write_static_struct(lc_result, frame, D, Q);
 
 			write_static_results ( fp, lc, DoF, N1,N2,
 					F,D,R, r,Q, rms_resid, ok, axial_sign, frame, load_cases );

@@ -2127,26 +2127,32 @@ void write_static_results (
 	fprintf(fp,"  Elmnt  Node       Nx          Vy         Vz");
 	fprintf(fp,"        Txx        Myy        Mzz\n");
 	for (n=1; n<= nE; n++) {
+		// Write Element and Node (First) id
 		fprintf(fp," %5d  %5d", n, J1[n]);
+		// Write Nx
 		if ( fabs(Q[n][1]) < 0.0001 )
 			fprintf (fp, "      0.0   ");
 		else    fprintf (fp, " %10.3f", Q[n][1] );
 		if ( Q[n][1] >=  0.0001 && axial_sign) fprintf(fp, "c");
 		if ( Q[n][1] <= -0.0001 && axial_sign) fprintf(fp, "t");
 		if (!axial_sign) fprintf(fp," ");
+		// Write Vy, Vz, Txx, Mxx, Mzz
 		for (i=2; i<=6; i++) {
 			if ( fabs(Q[n][i]) < 0.0001 )
 				fprintf (fp, "      0.0  ");
 			else    fprintf (fp, " %10.3f", Q[n][i] );
 		}
 		fprintf(fp,"\n");
+		// Write Element and Node (Second) id
 		fprintf(fp," %5d  %5d", n, J2[n]);
+		// Write Nx
 		if ( fabs(Q[n][7]) < 0.0001 )
 			fprintf (fp, "      0.0   ");
 		else    fprintf (fp, " %10.3f", Q[n][7] );
 		if ( Q[n][7] >=  0.0001 && axial_sign) fprintf(fp, "t");
 		if ( Q[n][7] <= -0.0001 && axial_sign) fprintf(fp, "c");
 		if (!axial_sign) fprintf(fp," ");
+		// Write Vy, Vz, Txx, Mxx, Mzz
 		for (i=8; i<=12; i++) {
 			if ( fabs(Q[n][i]) < 0.0001 )
 				fprintf (fp, "      0.0  ");

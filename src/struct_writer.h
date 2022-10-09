@@ -5,5 +5,6 @@
 void write_static_struct(
 	LoadCaseResult *lc_result,
 	Frame *frame,
-	double *D
+	const double *D,
+	const double **Q
 );
