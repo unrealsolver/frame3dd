@@ -47,6 +47,7 @@ For compilation/installation, see README.txt.
 #include <string.h>
 
 #include "common.h"
+#include "compat_types.h"
 #include "frame3dd.h"
 #include "frame3dd_io.h"
 #include "eig.h"
@@ -205,7 +206,7 @@ For compilation/installation, see README.txt.
 	run_options->visual.exagg_static = exagg_static;
 	run_options->visual.exagg_modal = exagg_static;
 
-	parse_options ( argc, argv, IN_file, OUT_file,
+	const OverrideFlags overrides = parse_options ( argc, argv, IN_file, OUT_file,
 			&shear_flag, &geom_flag, &anlyz_flag, &exagg_flag,
 			&D3_flag,
 			&lump_flag, &modal_flag, &tol_flag, &shift_flag,
@@ -240,7 +241,7 @@ For compilation/installation, see README.txt.
 	filetype = get_file_ext( IN_file, extension ); /* .CSV or .FMM or other? */
 
 //	temp_file_location("frame3dd.3dd",strippedInputFile,FRAME3DD_PATHMAX);
-	output_path("frame3dd.3dd",strippedInputFile,FRAME3DD_PATHMAX,NULL);
+	output_path("frame3dd.3dd", strippedInputFile, FRAME3DD_PATHMAX, NULL);
 
 	parse_input(fp, strippedInputFile);	/* strip comments from input data */
 	fclose(fp);
@@ -323,10 +324,10 @@ For compilation/installation, see README.txt.
 					Ax, Asy, Asz, Jx, Iy, Iz, E, G, p, d, frame );
 	if ( verbose) 	fprintf(stdout," ... complete\n");
 
-	read_run_data ( fp, OUT_file, &shear, shear_flag, &geom, geom_flag,
+	read_run_data ( fp, OUT_file, &shear, &geom,
 			meshpath, plotpath, infcpath,
 			&exagg_static, exagg_flag, &scale, &dx,
-			&anlyz, anlyz_flag, debug, run_options );
+			&anlyz, debug, run_options, overrides);
 
 	sfrv=fscanf(fp, "%d", &nL );	/* number of load cases		*/
 	load_cases->size = nL;

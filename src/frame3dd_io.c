@@ -33,6 +33,7 @@
 #include <assert.h>
 
 #include "common.h"
+#include "compat_types.h"
 #include "frame3dd_io.h"
 #include "coordtrans.h"
 #include "HPGmatrix.h"
@@ -55,7 +56,7 @@ static void getline_no_comment(
  * command line options over-ride values in the input data file
  * 04 Mar 2009, 22 Sep 2009
  */
-void parse_options (
+Flag parse_options(
 	int argc, char *argv[],
 	char IN_file[], char OUT_file[],
 	int *shear_flag,
@@ -73,14 +74,15 @@ void parse_options (
 	int *condense_flag,
 	int *verbose,
 	int *debug
-){
+) {
 
 	char	option;
 	char	errMsg[MAXL];
 	int	sfrv=0;		/* *scanf return value	*/
 
 	/* default values */
-
+	// TODO add float/double flags
+	Flag flag = { -1 };
 	*shear_flag = *geom_flag  = *anlyz_flag = *lump_flag = *modal_flag = -1;
 	*exagg_flag = *tol_flag = *shift_flag = -1.0;
 	*D3_flag = 0;
@@ -141,6 +143,7 @@ void parse_options (
 				break;
 			case 'c':		/* data check only */
 				*anlyz_flag = 0;
+				flag.anlyz = 0;
 				break;
 			case 'd':		/* debug */
 				*debug = 1;
@@ -152,20 +155,28 @@ void parse_options (
 				*axial_sign = 0;
 				break;
 			case 's':		/* shear deformation */
-				if (strcmp(optarg,"Off")==0)
+				if (strcmp(optarg,"Off")==0) {
 					*shear_flag = 0;
-				else if (strcmp(optarg,"On")==0)
+					flag.shear = 0;
+				}
+				else if (strcmp(optarg,"On")==0) {
 					*shear_flag = 1;
+					flag.shear = 1;
+				}
 				else {
 				 errorMsg("\n frame3dd command-line error: argument to -s option should be either On or Off\n");
 				 exit(3);
 				}
 				break;
 			case 'g':		/* geometric stiffness */
-				if (strcmp(optarg,"Off")==0)
+				if (strcmp(optarg,"Off")==0) {
 					*geom_flag = 0;
-				else if (strcmp(optarg,"On")==0)
+					flag.geom = 0;
+				}
+				else if (strcmp(optarg,"On")==0) {
 					*geom_flag = 1;
+					flag.geom = 1;
+				}
 				else {
 				 errorMsg("\n frame3dd command-line error: argument to -g option should be either On or Off\n");
 				 exit(4);
@@ -176,22 +187,31 @@ void parse_options (
 				break;
 			case 'z':		/* force 3D plotting */
 				*D3_flag = 1;
+				flag.D3 = 1;
 				break;
 			case 'l':		/* lumped or consistent mass */
-				if (strcmp(optarg,"Off")==0)
+				if (strcmp(optarg,"Off")==0) {
 					*lump_flag = 0;
-				else if (strcmp(optarg,"On")==0)
+					flag.lump = 0;
+				}
+				else if (strcmp(optarg,"On")==0) {
 					*lump_flag = 1;
+					flag.lump = 1;
+				}
 				else {
 				 errorMsg("\n frame3dd command-line error: argument to -l option should be either On or Off\n");
 				 exit(5);
 				}
 				break;
 			case 'm':		/* modal analysis method */
-				if (strcmp(optarg,"J")==0)
+				if (strcmp(optarg,"J")==0) {
 					*modal_flag = 1;
-				else if (strcmp(optarg,"S")==0)
+					flag.modal = 1;
+				}
+				else if (strcmp(optarg,"S")==0) {
 					*modal_flag = 2;
+					flag.modal = 2;
+				}
 				else {
 				 errorMsg("\n frame3dd command-line error: argument to -m option should be either J or S\n");
 				 exit(6);
@@ -220,6 +240,7 @@ void parse_options (
 				break;
 			case 'r':		/* matrix condensation method */
 				*condense_flag = atoi(optarg);
+				flag.condense = *condense_flag;
 				if (*condense_flag < 0 || *condense_flag > 3) {
 				 errorMsg("\n frame3dd command-line error: argument to -r option should be 0, 1, or 2.\n");
 				 exit(10);
@@ -245,6 +266,7 @@ void parse_options (
 		strcpy( OUT_file, IN_file );
 		strcat( OUT_file, ".out" );
 	}
+	return flag;
 }
 
 
@@ -551,9 +573,7 @@ void read_run_data (
 	FILE	*fp,
 	char	*OUT_file,	/* output data file name */
 	int	*shear,
-	int	shear_flag,
 	int	*geom,
-	int	geom_flag,
 	char	*meshpath,
 	char	*plotpath,
 	char	*infcpath,
@@ -562,9 +582,9 @@ void read_run_data (
 	float   *scale,
 	float	*dx,
 	int	*anlyz,
-	int	anlyz_flag,
 	int	debug,
-	RunOptions* run_options
+	RunOptions* run_options,
+	OverrideFlags overrides
 ){
 	int	full_len=0, len=0, i;
 	char	base_file[96] = "EMPTY_BASE";
@@ -632,19 +652,19 @@ void read_run_data (
 	run_options->visual.scale = *scale;
 
 	/* over-ride values from input data file with command-line options */
-	if (shear_flag != -1) {
-		*shear = shear_flag;
-		run_options->simulation.shear = shear_flag;
+	if (overrides.shear != -1) {
+		*shear = overrides.shear;
+		run_options->simulation.shear = overrides.shear;
 	}
-	if (geom_flag  != -1) {
-		*geom = geom_flag;
-		run_options->simulation.nonlinear = geom_flag;
+	if (overrides.geom  != -1) {
+		*geom = overrides.geom;
+		run_options->simulation.nonlinear = overrides.geom;
 	}
 	if (exagg_flag != -1.0) {
 		*exagg_static = exagg_flag;
 		run_options->visual.exagg_static = exagg_flag;
 	}
-	if (anlyz_flag != -1.0) *anlyz = anlyz_flag;
+	if (overrides.anlyz != -1) *anlyz = overrides.anlyz;
 
 	return;
 }

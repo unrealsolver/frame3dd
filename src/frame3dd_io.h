@@ -29,6 +29,7 @@
 #include <unistd.h>	/* getopt for parsing command-line options	*/
 
 #include "common.h"
+#include "compat_types.h"
 #include "microstran/vec3.h"
 #include "types.h"
 
@@ -37,7 +38,7 @@
  PARSE_OPTIONS -  parse command line options			     04mar09
  command line options over-ride values in the input data file
 */
-void parse_options (
+Flag parse_options (
 	int argc, char *argv[],
 	char IN_file[], char OUT_file[],
 	int *shear_flag,
@@ -134,9 +135,7 @@ void read_run_data (
 	FILE *fp,	/**< input data file pointer			*/
 	char OUT_file[], /**< output data file name			*/
 	int *shear,	/**< 1: include shear deformations, 0: don't	*/
-	int shear_flag,	/**< command-line over-ride			*/
 	int *geom,	/**< 1: include geometric stiffness, 0: don't	*/
-	int geom_flag,	/**< command-line over-ride			*/
 	char meshpath[],/**< file name for mesh data output		*/
 	char plotpath[],/**< file name for Gnuplot script		*/
 	char infcpath[],/**< file name for internal force data		*/
@@ -145,9 +144,9 @@ void read_run_data (
 	float *scale,	/**< zoom scale for 3D plotting in gnuplot      */
 	float *dx,	/**< frame element increment for internal forces*/
 	int *anlyz,	/**< 1: perform elastic analysis, 0: don't	*/
-	int anlyz_flag,	/**< command-line over-ride			*/
 	int debug,	/**< print debugging information		*/
-	RunOptions *run_options  /**< RunOptions object          	*/
+	RunOptions *run_options, /**< RunOptions object          	*/
+	OverrideFlags overrides  /**< Command line overrides			*/
 );
 
 
