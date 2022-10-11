@@ -10,8 +10,8 @@ typedef struct {
 		D3,	//   over-ride 3D plotting check
 		lump,	//   over-ride input file value
 		modal,	//   over-ride input file value
-		write,	//   write stiffness and mass matrix
-		axial,	//   suppress 't' or 'c' in output data
+		write_matrix,	//   write stiffness and mass matrix
+		axial_sign,	//   suppress 't' or 'c' in output data
 		condense; // over-ride input file value
 } OverrideFlags;
 #endif /* COMPAT_TYPES_H */

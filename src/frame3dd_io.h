@@ -225,9 +225,7 @@ void read_mass_data(
 	double *struct_mass, 	/**< mass of structural elements	*/
 	int *nM,	/**< number of modes to find			*/
 	int *Mmethod, 	/**< modal analysis method			*/
-	int modal_flag, /**< command-line over-ride			*/
 	int *lump,	/**< 1: use lumped mass matrix, 0: consistent mass */
-	int lump_flag,	/**< command-line over-ride			*/
 	double *tol,	/**< convergence tolerance for mode shapes	*/
 	double tol_flag, /**< command-line over-ride			*/
 	double *shift,	/**< frequency shift for unrestrained frames	*/
@@ -238,7 +236,8 @@ void read_mass_data(
 	float *pan,	/**< 1: pan viewpoint during animation, 0: don't */
 	float pan_flag, /**< command-line over-ride			*/
 	int verbose,	/**< 1: copious output to screen, 0: none	*/
-	int debug	/**< 1: debugging output to screen, 0: none	*/
+	int debug,	/**< 1: debugging output to screen, 0: none	*/
+	OverrideFlags overrides /**< Command line overrides		*/
 );
 
 
@@ -251,10 +250,10 @@ void read_condensation_data(
 	int *nC,	/**< number of nodes with condensed DoF's	*/
 	int *Cdof,	/**< list of DoF's retained in condensed model	*/
 	int *Cmethod,	/**< matrix conden'n method, static, Guyan, dynamic*/
-	int condense_flag, /** command-line over-ride			*/
 	int *c,		/**< list of retained degrees of freedom	*/
 	int *m,		/**< list of retained modes in dynamic condensation */
-	int verbose	/**< 1: copious output to screen, 0: none	*/
+	int verbose,	/**< 1: copious output to screen, 0: none	*/
+	OverrideFlags overrides /**< Command line overrides		*/
 );
 
 

@@ -56,7 +56,7 @@ static void getline_no_comment(
  * command line options over-ride values in the input data file
  * 04 Mar 2009, 22 Sep 2009
  */
-Flag parse_options(
+OverrideFlags parse_options(
 	int argc, char *argv[],
 	char IN_file[], char OUT_file[],
 	int *shear_flag,
@@ -82,7 +82,17 @@ Flag parse_options(
 
 	/* default values */
 	// TODO add float/double flags
-	Flag flag = { -1 };
+	OverrideFlags flag = {
+		.shear	= -1,
+		.geom	= -1,
+		.anlyz	= -1,
+		.D3	= 0,
+		.lump	= -1,
+		.modal	= -1,
+		.write_matrix = 0,
+		.axial_sign = 1,
+		.condense = -1
+	};
 	*shear_flag = *geom_flag  = *anlyz_flag = *lump_flag = *modal_flag = -1;
 	*exagg_flag = *tol_flag = *shift_flag = -1.0;
 	*D3_flag = 0;
@@ -150,9 +160,11 @@ Flag parse_options(
 				break;
 			case 'w':		/* write stiffness and mass */
 				*write_matrix = 1;
+				flag.write_matrix = 1;
 				break;
 			case 'x':		/* write sign of axial forces */
 				*axial_sign = 0;
+				flag.axial_sign = 0;
 				break;
 			case 's':		/* shear deformation */
 				if (strcmp(optarg,"Off")==0) {
@@ -1595,13 +1607,15 @@ void read_mass_data (
 		float *NMs, float *NMx, float *NMy, float *NMz,
 		double *L, float *Ax,
 		double *total_mass, double *struct_mass,
-		int *nM, int *Mmethod, int modal_flag,
-		int *lump, int lump_flag,
-		double *tol, double tol_flag, double *shift, double shift_flag,
+		int *nM, int *Mmethod,
+		int *lump,
+		double *tol, double tol_flag,
+		double *shift, double shift_flag,
 		double *exagg_modal,
 		char modepath[],
 		int anim[], float *pan, float pan_flag,
-		int verbose, int debug
+		int verbose, int debug,
+		OverrideFlags overrides
 ){
 /*	double	ms = 0.0; */
 	int	i,j, jnt, m, b, nA;
@@ -1629,7 +1643,7 @@ void read_mass_data (
 
 	sfrv=fscanf( fp, "%d", Mmethod );
 	if (sfrv != 1) sferr("Mmethod value in mass data");
-	if ( modal_flag != -1 )	*Mmethod = modal_flag;
+	if (overrides.modal != -1) *Mmethod = overrides.modal;
 
 	if ( verbose ) {
 		fprintf(stdout," modal analysis method ");
@@ -1659,7 +1673,7 @@ void read_mass_data (
 	sfrv=fscanf( fp, "%lf", exagg_modal );
 	if (sfrv != 1) sferr("exagg_modal value in mass data");
 
-	if (  lump_flag != -1   )	*lump = lump_flag;
+	if (overrides.lump != -1) *lump = overrides.lump;
 	if (  tol_flag  != -1.0 )	*tol  = tol_flag;
 	if ( shift_flag != -1.0 )	*shift = shift_flag;
 
@@ -1794,7 +1808,9 @@ void read_condensation_data (
 		FILE *fp,
 		int nN, int nM,
 		int *nC, int *Cdof,
-		int *Cmethod, int condense_flag, int *c, int *m, int verbose
+		int *Cmethod, int *c, int *m,
+		int verbose,
+		OverrideFlags overrides
 ){
 	int	i,j,k,  **cm;
 	int	sfrv=0;		/* *scanf return value */
@@ -1809,7 +1825,7 @@ void read_condensation_data (
 		return;
 	}
 
-	if ( condense_flag != -1 )	*Cmethod = condense_flag;
+	if (overrides.condense != -1) *Cmethod = overrides.condense;
 
 	if ( *Cmethod <= 0 )  {
 		if ( verbose )

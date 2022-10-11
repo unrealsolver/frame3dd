@@ -425,17 +425,16 @@ For compilation/installation, see README.txt.
 	read_mass_data( fp, IN_file, nN, nE, &nI, &nX,
 			d, EMs, NMs, NMx, NMy, NMz,
 			L, Ax, &total_mass, &struct_mass, &nM,
-			&Mmethod, modal_flag,
-			&lump, lump_flag, &tol, tol_flag, &shift, shift_flag,
+			&Mmethod, &lump, &tol, tol_flag, &shift, shift_flag,
 			&exagg_modal, modepath, anim, &pan, pan_flag,
-			verbose, debug );
+			verbose, debug, overrides );
 	if ( verbose ) {	/* display mass data complete */
 		fprintf(stdout,"                                                     ");
 		fprintf(stdout," mass data ... complete\n");
 	}
 
 	read_condensation_data( fp, nN,nM, &nC, &Cdof,
-			&Cmethod, condense_flag, c,m, verbose );
+			&Cmethod, c,m, verbose, overrides );
 
 	if( nC>0 && verbose ) {	/*  display condensation data complete */
 		fprintf(stdout,"                                      ");
