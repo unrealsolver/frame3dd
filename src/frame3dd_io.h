@@ -38,24 +38,9 @@
  PARSE_OPTIONS -  parse command line options			     04mar09
  command line options over-ride values in the input data file
 */
-Flag parse_options (
+RuntimeArgs parse_options (
 	int argc, char *argv[],
-	char IN_file[], char OUT_file[],
-	int *shear_flag,
-	int *geom_flag,
-	int *anlyz_flag,
-	double *exagg_flag,
-	int *D3_flag,	/**< Force 3D plotting in Gnuplot		*/
-	int *lump_flag,
-	int *modal_flag,
-	double *tol_flag,
-	double *shift_flag,
-	float *pan_flag,
-	int *write_matrix,
-	int *axial_sign,
-	int *condense_flag,
-	int *verbose,
-	int *debug
+	char IN_file[], char OUT_file[]
 );
 
 /**
@@ -143,7 +128,6 @@ void read_run_data (
 	float *scale,	/**< zoom scale for 3D plotting in gnuplot      */
 	float *dx,	/**< frame element increment for internal forces*/
 	int *anlyz,	/**< 1: perform elastic analysis, 0: don't	*/
-	int debug,	/**< print debugging information		*/
 	RunOptions *run_options, /**< RunOptions object          	*/
 	RuntimeArgs args  /**< Command line options			*/
 );

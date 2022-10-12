@@ -58,22 +58,7 @@ static void getline_no_comment(
  */
 RuntimeArgs parse_options(
 	int argc, char *argv[],
-	char IN_file[], char OUT_file[],
-	int *shear_flag,
-	int *geom_flag,
-	int *anlyz_flag,
-	double *exagg_flag,
-	int *D3_flag,
-	int *lump_flag,
-	int *modal_flag,
-	double *tol_flag,
-	double *shift_flag,
-	float *pan_flag,
-	int *write_matrix,
-	int *axial_sign,
-	int *condense_flag,
-	int *verbose,
-	int *debug
+	char IN_file[], char OUT_file[]
 ) {
 
 	char	option;
@@ -100,14 +85,6 @@ RuntimeArgs parse_options(
 		.verbose = 1,
 		.debug = 0,
 	};
-	*shear_flag = *geom_flag  = *anlyz_flag = *lump_flag = *modal_flag = -1;
-	*exagg_flag = *tol_flag = *shift_flag = -1.0;
-	*D3_flag = 0;
-	*pan_flag = -1.0;
-	*condense_flag = -1;
-	*write_matrix = 0;
-	*axial_sign = 1;
-	*debug = 0; *verbose = 1;
 
 	strcpy(  IN_file , "\0" );
 	strcpy( OUT_file , "\0" );
@@ -156,32 +133,25 @@ RuntimeArgs parse_options(
 				display_version_about();
 				exit(0);
 			case 'q':		/* quiet */
-				*verbose = 0;
 				args.verbose = 0;
 				break;
 			case 'c':		/* data check only */
-				*anlyz_flag = 0;
 				args.overrides.anlyz = 0;
 				break;
 			case 'd':		/* debug */
-				*debug = 1;
 				args.debug = 1;
 				break;
 			case 'w':		/* write stiffness and mass */
-				*write_matrix = 1;
 				args.write_matrix = 1;
 				break;
 			case 'x':		/* write sign of axial forces */
-				*axial_sign = 0;
 				args.axial_sign = 0;
 				break;
 			case 's':		/* shear deformation */
 				if (strcmp(optarg,"Off")==0) {
-					*shear_flag = 0;
 					args.overrides.shear = 0;
 				}
 				else if (strcmp(optarg,"On")==0) {
-					*shear_flag = 1;
 					args.overrides.shear = 1;
 				}
 				else {
@@ -191,11 +161,9 @@ RuntimeArgs parse_options(
 				break;
 			case 'g':		/* geometric stiffness */
 				if (strcmp(optarg,"Off")==0) {
-					*geom_flag = 0;
 					args.overrides.geom = 0;
 				}
 				else if (strcmp(optarg,"On")==0) {
-					*geom_flag = 1;
 					args.overrides.geom = 1;
 				}
 				else {
@@ -204,20 +172,16 @@ RuntimeArgs parse_options(
 				}
 				break;
 			case 'e':		/* static mesh exagg. factor */
-				*exagg_flag = atof(optarg);
 				args.overrides.exagg = atof(optarg);
 				break;
 			case 'z':		/* force 3D plotting */
-				*D3_flag = 1;
 				args.overrides.D3 = 1;
 				break;
 			case 'l':		/* lumped or consistent mass */
 				if (strcmp(optarg,"Off")==0) {
-					*lump_flag = 0;
 					args.overrides.lump = 0;
 				}
 				else if (strcmp(optarg,"On")==0) {
-					*lump_flag = 1;
 					args.overrides.lump = 1;
 				}
 				else {
@@ -227,11 +191,9 @@ RuntimeArgs parse_options(
 				break;
 			case 'm':		/* modal analysis method */
 				if (strcmp(optarg,"J")==0) {
-					*modal_flag = 1;
 					args.overrides.modal = 1;
 				}
 				else if (strcmp(optarg,"S")==0) {
-					*modal_flag = 2;
 					args.overrides.modal = 2;
 				}
 				else {
@@ -240,7 +202,6 @@ RuntimeArgs parse_options(
 				}
 				break;
 			case 't':		/* modal analysis tolerence */
-				*tol_flag = atof(optarg);
 				args.overrides.tol = atof(optarg);
 				if (args.overrides.tol == 0.0) {
 				 errorMsg("\n frame3dd command-line error: argument to -t option should be a number.\n");
@@ -248,7 +209,6 @@ RuntimeArgs parse_options(
 				}
 				break;
 			case 'f':		/* modal analysis freq. shift */
-				*shift_flag = atof(optarg);
 				args.overrides.shift = atof(optarg);
 				if (args.overrides.shift == 0.0) {
 				 errorMsg("\n frame3dd command-line error: argument to -f option should be a number.\n");
@@ -256,7 +216,6 @@ RuntimeArgs parse_options(
 				}
 				break;
 			case 'p':		/* pan rate	*/
-				*pan_flag = atof(optarg);
 				args.overrides.pan = atof(optarg);
 				if (args.overrides.pan < 0.0) {
 				 errorMsg("\n frame3dd command-line error: argument to -p option should be a positive number.\n");
@@ -264,7 +223,6 @@ RuntimeArgs parse_options(
 				}
 				break;
 			case 'r':		/* matrix condensation method */
-				*condense_flag = atoi(optarg);
 				args.overrides.condense = atoi(optarg);
 				if (args.overrides.condense < 0 || args.overrides.condense > 3) {
 				 errorMsg("\n frame3dd command-line error: argument to -r option should be 0, 1, or 2.\n");

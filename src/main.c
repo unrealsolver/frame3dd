@@ -169,29 +169,10 @@ For compilation/installation, see README.txt.
 		*c=NULL,	// vector of DoF's to condense
 		*m=NULL,	// vector of modes to condense
 		filetype=0,	// 1 if .CSV, 2 if file is Matlab
-		debug=0,	// 1: debugging screen output, 0: none
-		verbose=1,	// 1: copious screen output, 0: none
 		axial_strain_warning = 0, // 0: "ok", 1: strain > 0.001
 		ExitCode = 0;	// error code returned by Frame3DD
 
-	int	shear_flag= -1,	//   over-ride input file value
-		geom_flag = -1,	//   over-ride input file value
-		anlyz_flag= -1,	//   over-ride input file value
-		D3_flag = -1,	//   over-ride 3D plotting check
-		lump_flag = -1,	//   over-ride input file value
-		modal_flag= -1,	//   over-ride input file value
-		write_matrix=-1,//   write stiffness and mass matrix
-		axial_sign=-1,  //   suppress 't' or 'c' in output data
-		condense_flag=-1; // over-ride input file value
-
 	int	sfrv=0;		// *scanf return value for err checking
-
-	double	exagg_flag=-1.0, // over-ride input file value
-		tol_flag  =-1.0, // over-ride input file value
-		shift_flag=-1.0; // over-ride input file value
-
-	float	pan_flag = -1.0; // over-ride input file value
-
 	char	extension[16];	// Input Data file name extension
 
 	Frame *frame = (Frame *) malloc(sizeof(Frame));
@@ -206,12 +187,10 @@ For compilation/installation, see README.txt.
 	run_options->visual.exagg_static = exagg_static;
 	run_options->visual.exagg_modal = exagg_static;
 
-	const RuntimeArgs args = parse_options ( argc, argv, IN_file, OUT_file,
-			&shear_flag, &geom_flag, &anlyz_flag, &exagg_flag,
-			&D3_flag,
-			&lump_flag, &modal_flag, &tol_flag, &shift_flag,
-			&pan_flag, &write_matrix, &axial_sign, &condense_flag,
-			&verbose, &debug);
+	const RuntimeArgs args = parse_options ( argc, argv, IN_file, OUT_file );
+	// FIXME tmp aliases
+	const int8_t debug = args.debug;
+	const int8_t verbose = args.verbose;
 
 	if ( verbose ) { /*  display program name, version and license type */
 		textColor('w','b','b','x');
@@ -327,7 +306,7 @@ For compilation/installation, see README.txt.
 	read_run_data ( fp, OUT_file, &shear, &geom,
 			meshpath, plotpath, infcpath,
 			&exagg_static, &scale, &dx,
-			&anlyz, debug, run_options, args);
+			&anlyz, run_options, args);
 
 	sfrv=fscanf(fp, "%d", &nL );	/* number of load cases		*/
 	load_cases->size = nL;
@@ -626,7 +605,7 @@ For compilation/installation, see README.txt.
 			/*  dealocate Broyden secant stiffness matrix, Ks */
 			// if ( geom )	free_dmatrix(Ks, 1, DoF, 1, DoF );
 
-			if ( write_matrix )	/* write static stiffness matrix */
+			if ( args.write_matrix )	/* write static stiffness matrix */
 				save_ut_dmatrix ( "Ks", K, DoF, "w" );
 
 			/*  display RMS equilibrium error */
@@ -635,7 +614,7 @@ For compilation/installation, see README.txt.
 			write_static_struct(lc_result, frame, D, Q);
 
 			write_static_results ( fp, lc, DoF, N1,N2,
-					F,D,R, r,Q, rms_resid, ok, axial_sign, frame, load_cases );
+					F,D,R, r,Q, rms_resid, ok, args.axial_sign, frame, load_cases );
 
 			if ( filetype == 1 ) {		// .CSV format output
 				write_static_csv(OUT_file, title,
@@ -718,7 +697,7 @@ For compilation/installation, see README.txt.
 		    }
 		}
 
-		if ( write_matrix ) {	/* write Kd and Md matrices */
+		if ( args.write_matrix ) {	/* write Kd and Md matrices */
 			save_ut_dmatrix ( "Kd", K, DoF, "w" );/* dynamic stff matx */
 			save_ut_dmatrix ( "Md", M, DoF, "w" );/* dynamic mass matx */
 		}
