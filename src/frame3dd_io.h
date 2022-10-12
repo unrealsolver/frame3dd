@@ -140,13 +140,12 @@ void read_run_data (
 	char plotpath[],/**< file name for Gnuplot script		*/
 	char infcpath[],/**< file name for internal force data		*/
 	double *exagg_static,/**< factor for static displ. exaggeration	*/
-	double exagg_flag, /**< static exagg. command-line over-ride	*/
 	float *scale,	/**< zoom scale for 3D plotting in gnuplot      */
 	float *dx,	/**< frame element increment for internal forces*/
 	int *anlyz,	/**< 1: perform elastic analysis, 0: don't	*/
 	int debug,	/**< print debugging information		*/
 	RunOptions *run_options, /**< RunOptions object          	*/
-	OverrideFlags overrides  /**< Command line overrides			*/
+	RuntimeArgs args  /**< Command line options			*/
 );
 
 
@@ -227,17 +226,12 @@ void read_mass_data(
 	int *Mmethod, 	/**< modal analysis method			*/
 	int *lump,	/**< 1: use lumped mass matrix, 0: consistent mass */
 	double *tol,	/**< convergence tolerance for mode shapes	*/
-	double tol_flag, /**< command-line over-ride			*/
 	double *shift,	/**< frequency shift for unrestrained frames	*/
-	double shift_flag, /**< command-line over-ride			*/
 	double *exagg_modal, /**< exaggerate modal displacements	*/
 	char modepath[], /**< filename for mode shape data for plotting	*/
 	int *anim,	/**< list of modes to be graphically animated	*/
 	float *pan,	/**< 1: pan viewpoint during animation, 0: don't */
-	float pan_flag, /**< command-line over-ride			*/
-	int verbose,	/**< 1: copious output to screen, 0: none	*/
-	int debug,	/**< 1: debugging output to screen, 0: none	*/
-	OverrideFlags overrides /**< Command line overrides		*/
+	RuntimeArgs args /**< Command line options		*/
 );
 
 
@@ -253,7 +247,7 @@ void read_condensation_data(
 	int *c,		/**< list of retained degrees of freedom	*/
 	int *m,		/**< list of retained modes in dynamic condensation */
 	int verbose,	/**< 1: copious output to screen, 0: none	*/
-	OverrideFlags overrides /**< Command line overrides		*/
+	RuntimeArgs args /**< Command line options		*/
 );
 
 

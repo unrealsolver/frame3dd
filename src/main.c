@@ -206,7 +206,7 @@ For compilation/installation, see README.txt.
 	run_options->visual.exagg_static = exagg_static;
 	run_options->visual.exagg_modal = exagg_static;
 
-	const OverrideFlags overrides = parse_options ( argc, argv, IN_file, OUT_file,
+	const RuntimeArgs args = parse_options ( argc, argv, IN_file, OUT_file,
 			&shear_flag, &geom_flag, &anlyz_flag, &exagg_flag,
 			&D3_flag,
 			&lump_flag, &modal_flag, &tol_flag, &shift_flag,
@@ -326,8 +326,8 @@ For compilation/installation, see README.txt.
 
 	read_run_data ( fp, OUT_file, &shear, &geom,
 			meshpath, plotpath, infcpath,
-			&exagg_static, exagg_flag, &scale, &dx,
-			&anlyz, debug, run_options, overrides);
+			&exagg_static, &scale, &dx,
+			&anlyz, debug, run_options, args);
 
 	sfrv=fscanf(fp, "%d", &nL );	/* number of load cases		*/
 	load_cases->size = nL;
@@ -425,16 +425,16 @@ For compilation/installation, see README.txt.
 	read_mass_data( fp, IN_file, nN, nE, &nI, &nX,
 			d, EMs, NMs, NMx, NMy, NMz,
 			L, Ax, &total_mass, &struct_mass, &nM,
-			&Mmethod, &lump, &tol, tol_flag, &shift, shift_flag,
-			&exagg_modal, modepath, anim, &pan, pan_flag,
-			verbose, debug, overrides );
+			&Mmethod, &lump, &tol, &shift,
+			&exagg_modal, modepath, anim, &pan,
+			args );
 	if ( verbose ) {	/* display mass data complete */
 		fprintf(stdout,"                                                     ");
 		fprintf(stdout," mass data ... complete\n");
 	}
 
 	read_condensation_data( fp, nN,nM, &nC, &Cdof,
-			&Cmethod, c,m, verbose, overrides );
+			&Cmethod, c,m, verbose, args );
 
 	if( nC>0 && verbose ) {	/*  display condensation data complete */
 		fprintf(stdout,"                                      ");
@@ -665,8 +665,8 @@ For compilation/installation, see README.txt.
 			static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
 						lc, DoF,
 						xyz, L, N1,N2, p, D,
-						exagg_static, D3_flag, anlyz,
-						dx, scale, load_cases, frame );
+						exagg_static, anlyz,
+						dx, scale, load_cases, frame, args );
 
 		} /* end load case loop */
 	} else {		/*  data check only  */
@@ -679,8 +679,8 @@ For compilation/installation, see README.txt.
 			IN_file, infcpath, meshpath, plotpath, title,
 			lc, DoF,
 			xyz, L, N1,N2, p, D,
-			exagg_static, D3_flag, anlyz,
-			dx, scale, load_cases, frame
+			exagg_static, anlyz,
+			dx, scale, load_cases, frame, args
 		);
 	}
 
@@ -743,11 +743,11 @@ For compilation/installation, see README.txt.
 	if ( nM > 0 && anlyz ) {	/* write modal analysis results */
 		modal_mesh ( IN_file, meshpath, modepath, plotpath, title,
 				DoF, nM, xyz, L, N1,N2, p,
-				M, f, V, exagg_modal, D3_flag, anlyz, frame );
+				M, f, V, exagg_modal, anlyz, frame, args );
 
 		animate ( IN_file, meshpath, modepath, plotpath, title,anim,
 				DoF, nM, xyz, L, p, N1,N2, f,
-				V, exagg_modal, D3_flag, pan, scale, frame );
+				V, exagg_modal, pan, scale, frame, args );
 	}
 
 	if ( nC > 0 ) {		/* matrix condensation of stiffness and mass */

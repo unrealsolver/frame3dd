@@ -290,9 +290,10 @@ void static_mesh(
 		char *title, int lc, int DoF,
 		vec3 *xyz, double *L,
 		int *N1, int *N2, float *p, double *D,
-		double exagg_static, int D3_flag, int anlyz, float dx, float scale,
+		double exagg_static, int anlyz, float dx, float scale,
 		LoadCases *load_cases,
-		Frame *frame
+		Frame *frame,
+		RuntimeArgs args
 ){
 	// Hookup the old variable names
 	const int nN = frame->nodes.size;
@@ -322,7 +323,7 @@ void static_mesh(
 		if (xyz[j].y != 0.0) Y=1;
 		if (xyz[j].z != 0.0) Z=1;
 	}
-	if ( (X && Y && Z) || D3_flag ) {
+	if ( (X && Y && Z) || args.overrides.D3 ) {
 		D3 = ' '; D2 = '#';
 	} else {
 		D3 = '#'; D2 = ' ';
@@ -488,7 +489,8 @@ void modal_mesh(
 		vec3 *xyz, double *L,
 		int *J1, int *J2, float *p,
 		double **M, double *f, double **V,
-		double exagg_modal, int D3_flag, int anlyz, Frame *frame
+		double exagg_modal, int anlyz, Frame *frame,
+		RuntimeArgs args
 ){
 	// Hookup the old variable names
 	const int nN = frame->nodes.size;
@@ -561,7 +563,7 @@ void modal_mesh(
 			if (xyz[j].z != 0.0) Z=1;
 		}
 
-		if ( (X && Y && Z) || D3_flag ) {
+		if ( (X && Y && Z) || args.overrides.D3 ) {
 			D3 = ' '; D2 = '#';
 		} else {
 			D3 = '#'; D2 = ' ';
@@ -621,10 +623,11 @@ void animate(
 	int DoF, int nM,
 	vec3 *xyz, double *L, float *p,
 	int *J1, int *J2, double *f, double **V,
-	double exagg_modal, int D3_flag,
+	double exagg_modal,
 	float pan,		/* pan rate for animation	     */
 	float scale,		/* inital zoom scale in 3D animation */
-	Frame *frame
+	Frame *frame,
+	RuntimeArgs args
 ){
 	// Hookup the old variable names
 	const int nN = frame->nodes.size;
@@ -673,7 +676,7 @@ void animate(
 		if ( y_max < xyz[j].y ) y_max = xyz[j].y;
 		if ( z_max < xyz[j].z ) z_max = xyz[j].z;
 	}
-	if ( (X && Y && Z) || D3_flag ) {
+	if ( (X && Y && Z) || args.overrides.D3 ) {
 		D3 = ' '; D2 = '#';
 	} else {
 		D3 = '#'; D2 = ' ';

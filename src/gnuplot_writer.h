@@ -27,6 +27,7 @@
 #include <math.h>
 
 #include "microstran/vec3.h"
+#include "compat_types.h"
 #include "types.h"
 
 /*
@@ -78,9 +79,10 @@ void static_mesh(
 	char *title, int lc, int DoF,
 	vec3 *xyz, double *L,
 	int *N1, int *N2, float *p, double *D,
-	double exagg_static, int D3_flag, int anlyz, float dx, float scale,
+	double exagg_static, int anlyz, float dx, float scale,
 	LoadCases *load_cases,
-	Frame *frame
+	Frame *frame,
+	RuntimeArgs args
 );
 
 
@@ -96,8 +98,8 @@ void modal_mesh(
 	vec3 *xyz, double *L,
 	int *N1, int *N2, float *p,
 	double **M, double *f, double **V,
-	double exagg_modal, int D3_flag, int anlyz,
-	Frame *frame
+	double exagg_modal, int anlyz,
+	Frame *frame, RuntimeArgs args
 );
 
 
@@ -115,8 +117,9 @@ void animate(
 	int DoF, int nM,
 	vec3 *xyz, double *L, float *p,
 	int *N1, int *N2, double *f, double **V,
-	double exagg_modal, int D3_flag, float pan, float scale,
-	Frame *frame
+	double exagg_modal, float pan, float scale,
+	Frame *frame, RuntimeArgs args
+
 );
 
 
