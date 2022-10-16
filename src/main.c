@@ -47,6 +47,7 @@ For compilation/installation, see README.txt.
 #include <string.h>
 
 #include "common.h"
+#include "compat_types.h"
 #include "frame3dd.h"
 #include "frame3dd_io.h"
 #include "eig.h"
@@ -168,29 +169,10 @@ For compilation/installation, see README.txt.
 		*c=NULL,	// vector of DoF's to condense
 		*m=NULL,	// vector of modes to condense
 		filetype=0,	// 1 if .CSV, 2 if file is Matlab
-		debug=0,	// 1: debugging screen output, 0: none
-		verbose=1,	// 1: copious screen output, 0: none
 		axial_strain_warning = 0, // 0: "ok", 1: strain > 0.001
 		ExitCode = 0;	// error code returned by Frame3DD
 
-	int	shear_flag= -1,	//   over-ride input file value
-		geom_flag = -1,	//   over-ride input file value
-		anlyz_flag= -1,	//   over-ride input file value
-		D3_flag = -1,	//   over-ride 3D plotting check
-		lump_flag = -1,	//   over-ride input file value
-		modal_flag= -1,	//   over-ride input file value
-		write_matrix=-1,//   write stiffness and mass matrix
-		axial_sign=-1,  //   suppress 't' or 'c' in output data
-		condense_flag=-1; // over-ride input file value
-
 	int	sfrv=0;		// *scanf return value for err checking
-
-	double	exagg_flag=-1.0, // over-ride input file value
-		tol_flag  =-1.0, // over-ride input file value
-		shift_flag=-1.0; // over-ride input file value
-
-	float	pan_flag = -1.0; // over-ride input file value
-
 	char	extension[16];	// Input Data file name extension
 
 	Frame *frame = (Frame *) malloc(sizeof(Frame));
@@ -205,12 +187,10 @@ For compilation/installation, see README.txt.
 	run_options->visual.exagg_static = exagg_static;
 	run_options->visual.exagg_modal = exagg_static;
 
-	parse_options ( argc, argv, IN_file, OUT_file,
-			&shear_flag, &geom_flag, &anlyz_flag, &exagg_flag,
-			&D3_flag,
-			&lump_flag, &modal_flag, &tol_flag, &shift_flag,
-			&pan_flag, &write_matrix, &axial_sign, &condense_flag,
-			&verbose, &debug);
+	const RuntimeArgs args = parse_options ( argc, argv, IN_file, OUT_file );
+	// FIXME tmp aliases
+	const int8_t debug = args.debug;
+	const int8_t verbose = args.verbose;
 
 	if ( verbose ) { /*  display program name, version and license type */
 		textColor('w','b','b','x');
@@ -240,7 +220,7 @@ For compilation/installation, see README.txt.
 	filetype = get_file_ext( IN_file, extension ); /* .CSV or .FMM or other? */
 
 //	temp_file_location("frame3dd.3dd",strippedInputFile,FRAME3DD_PATHMAX);
-	output_path("frame3dd.3dd",strippedInputFile,FRAME3DD_PATHMAX,NULL);
+	output_path("frame3dd.3dd", strippedInputFile, FRAME3DD_PATHMAX, NULL);
 
 	parse_input(fp, strippedInputFile);	/* strip comments from input data */
 	fclose(fp);
@@ -323,10 +303,10 @@ For compilation/installation, see README.txt.
 					Ax, Asy, Asz, Jx, Iy, Iz, E, G, p, d, frame );
 	if ( verbose) 	fprintf(stdout," ... complete\n");
 
-	read_run_data ( fp, OUT_file, &shear, shear_flag, &geom, geom_flag,
+	read_run_data ( fp, OUT_file, &shear, &geom,
 			meshpath, plotpath, infcpath,
-			&exagg_static, exagg_flag, &scale, &dx,
-			&anlyz, anlyz_flag, debug, run_options );
+			&exagg_static, &scale, &dx,
+			&anlyz, run_options, args);
 
 	sfrv=fscanf(fp, "%d", &nL );	/* number of load cases		*/
 	load_cases->size = nL;
@@ -424,17 +404,16 @@ For compilation/installation, see README.txt.
 	read_mass_data( fp, IN_file, nN, nE, &nI, &nX,
 			d, EMs, NMs, NMx, NMy, NMz,
 			L, Ax, &total_mass, &struct_mass, &nM,
-			&Mmethod, modal_flag,
-			&lump, lump_flag, &tol, tol_flag, &shift, shift_flag,
-			&exagg_modal, modepath, anim, &pan, pan_flag,
-			verbose, debug );
+			&Mmethod, &lump, &tol, &shift,
+			&exagg_modal, modepath, anim, &pan,
+			args );
 	if ( verbose ) {	/* display mass data complete */
 		fprintf(stdout,"                                                     ");
 		fprintf(stdout," mass data ... complete\n");
 	}
 
 	read_condensation_data( fp, nN,nM, &nC, &Cdof,
-			&Cmethod, condense_flag, c,m, verbose );
+			&Cmethod, c,m, verbose, args );
 
 	if( nC>0 && verbose ) {	/*  display condensation data complete */
 		fprintf(stdout,"                                      ");
@@ -626,7 +605,7 @@ For compilation/installation, see README.txt.
 			/*  dealocate Broyden secant stiffness matrix, Ks */
 			// if ( geom )	free_dmatrix(Ks, 1, DoF, 1, DoF );
 
-			if ( write_matrix )	/* write static stiffness matrix */
+			if ( args.write_matrix )	/* write static stiffness matrix */
 				save_ut_dmatrix ( "Ks", K, DoF, "w" );
 
 			/*  display RMS equilibrium error */
@@ -635,7 +614,7 @@ For compilation/installation, see README.txt.
 			write_static_struct(lc_result, frame, D, Q);
 
 			write_static_results ( fp, lc, DoF, N1,N2,
-					F,D,R, r,Q, rms_resid, ok, axial_sign, frame, load_cases );
+					F,D,R, r,Q, rms_resid, ok, args.axial_sign, frame, load_cases );
 
 			if ( filetype == 1 ) {		// .CSV format output
 				write_static_csv(OUT_file, title,
@@ -665,8 +644,8 @@ For compilation/installation, see README.txt.
 			static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
 						lc, DoF,
 						xyz, L, N1,N2, p, D,
-						exagg_static, D3_flag, anlyz,
-						dx, scale, load_cases, frame );
+						exagg_static, anlyz,
+						dx, scale, load_cases, frame, args );
 
 		} /* end load case loop */
 	} else {		/*  data check only  */
@@ -679,8 +658,8 @@ For compilation/installation, see README.txt.
 			IN_file, infcpath, meshpath, plotpath, title,
 			lc, DoF,
 			xyz, L, N1,N2, p, D,
-			exagg_static, D3_flag, anlyz,
-			dx, scale, load_cases, frame
+			exagg_static, anlyz,
+			dx, scale, load_cases, frame, args
 		);
 	}
 
@@ -718,7 +697,7 @@ For compilation/installation, see README.txt.
 		    }
 		}
 
-		if ( write_matrix ) {	/* write Kd and Md matrices */
+		if ( args.write_matrix ) {	/* write Kd and Md matrices */
 			save_ut_dmatrix ( "Kd", K, DoF, "w" );/* dynamic stff matx */
 			save_ut_dmatrix ( "Md", M, DoF, "w" );/* dynamic mass matx */
 		}
@@ -743,11 +722,11 @@ For compilation/installation, see README.txt.
 	if ( nM > 0 && anlyz ) {	/* write modal analysis results */
 		modal_mesh ( IN_file, meshpath, modepath, plotpath, title,
 				DoF, nM, xyz, L, N1,N2, p,
-				M, f, V, exagg_modal, D3_flag, anlyz, frame );
+				M, f, V, exagg_modal, anlyz, frame, args );
 
 		animate ( IN_file, meshpath, modepath, plotpath, title,anim,
 				DoF, nM, xyz, L, p, N1,N2, f,
-				V, exagg_modal, D3_flag, pan, scale, frame );
+				V, exagg_modal, pan, scale, frame, args );
 	}
 
 	if ( nC > 0 ) {		/* matrix condensation of stiffness and mass */

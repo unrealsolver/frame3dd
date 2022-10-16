@@ -33,6 +33,7 @@
 #include <assert.h>
 
 #include "common.h"
+#include "compat_types.h"
 #include "frame3dd_io.h"
 #include "coordtrans.h"
 #include "HPGmatrix.h"
@@ -55,40 +56,35 @@ static void getline_no_comment(
  * command line options over-ride values in the input data file
  * 04 Mar 2009, 22 Sep 2009
  */
-void parse_options (
+RuntimeArgs parse_options(
 	int argc, char *argv[],
-	char IN_file[], char OUT_file[],
-	int *shear_flag,
-	int *geom_flag,
-	int *anlyz_flag,
-	double *exagg_flag,
-	int *D3_flag,
-	int *lump_flag,
-	int *modal_flag,
-	double *tol_flag,
-	double *shift_flag,
-	float *pan_flag,
-	int *write_matrix,
-	int *axial_sign,
-	int *condense_flag,
-	int *verbose,
-	int *debug
-){
+	char IN_file[], char OUT_file[]
+) {
 
 	char	option;
 	char	errMsg[MAXL];
 	int	sfrv=0;		/* *scanf return value	*/
 
 	/* default values */
-
-	*shear_flag = *geom_flag  = *anlyz_flag = *lump_flag = *modal_flag = -1;
-	*exagg_flag = *tol_flag = *shift_flag = -1.0;
-	*D3_flag = 0;
-	*pan_flag = -1.0;
-	*condense_flag = -1;
-	*write_matrix = 0;
-	*axial_sign = 1;
-	*debug = 0; *verbose = 1;
+	RuntimeArgs args = {
+		.overrides = {
+			.exagg	= -1.0,
+			.tol	= -1.0,
+			.shift	= -1.0,
+			.pan	= -1.0,
+			.shear	= -1,
+			.geom	= -1,
+			.anlyz	= -1,
+			.D3	= 0,
+			.lump	= -1,
+			.modal	= -1,
+			.condense = -1
+		},
+		.write_matrix = 0,
+		.axial_sign = 1,
+		.verbose = 1,
+		.debug = 0,
+	};
 
 	strcpy(  IN_file , "\0" );
 	strcpy( OUT_file , "\0" );
@@ -106,13 +102,13 @@ void parse_options (
 		fprintf (stderr," Please enter the output data file name: ");
 		sfrv=scanf("%s", OUT_file );
 		if (sfrv != 1) sferr("OUT_file");
-		return;
+		return args;
 	 }
 	 case 3: {
 		if ( argv[1][0] != '-' ) {
 			strcpy(  IN_file , argv[1] );
 			strcpy( OUT_file , argv[2] );
-			return;
+			return args;
 		}
 	 }
 	}
@@ -137,90 +133,98 @@ void parse_options (
 				display_version_about();
 				exit(0);
 			case 'q':		/* quiet */
-				*verbose = 0;
+				args.verbose = 0;
 				break;
 			case 'c':		/* data check only */
-				*anlyz_flag = 0;
+				args.overrides.anlyz = 0;
 				break;
 			case 'd':		/* debug */
-				*debug = 1;
+				args.debug = 1;
 				break;
 			case 'w':		/* write stiffness and mass */
-				*write_matrix = 1;
+				args.write_matrix = 1;
 				break;
 			case 'x':		/* write sign of axial forces */
-				*axial_sign = 0;
+				args.axial_sign = 0;
 				break;
 			case 's':		/* shear deformation */
-				if (strcmp(optarg,"Off")==0)
-					*shear_flag = 0;
-				else if (strcmp(optarg,"On")==0)
-					*shear_flag = 1;
+				if (strcmp(optarg,"Off")==0) {
+					args.overrides.shear = 0;
+				}
+				else if (strcmp(optarg,"On")==0) {
+					args.overrides.shear = 1;
+				}
 				else {
 				 errorMsg("\n frame3dd command-line error: argument to -s option should be either On or Off\n");
 				 exit(3);
 				}
 				break;
 			case 'g':		/* geometric stiffness */
-				if (strcmp(optarg,"Off")==0)
-					*geom_flag = 0;
-				else if (strcmp(optarg,"On")==0)
-					*geom_flag = 1;
+				if (strcmp(optarg,"Off")==0) {
+					args.overrides.geom = 0;
+				}
+				else if (strcmp(optarg,"On")==0) {
+					args.overrides.geom = 1;
+				}
 				else {
 				 errorMsg("\n frame3dd command-line error: argument to -g option should be either On or Off\n");
 				 exit(4);
 				}
 				break;
 			case 'e':		/* static mesh exagg. factor */
-				*exagg_flag = atof(optarg);
+				args.overrides.exagg = atof(optarg);
 				break;
 			case 'z':		/* force 3D plotting */
-				*D3_flag = 1;
+				args.overrides.D3 = 1;
 				break;
 			case 'l':		/* lumped or consistent mass */
-				if (strcmp(optarg,"Off")==0)
-					*lump_flag = 0;
-				else if (strcmp(optarg,"On")==0)
-					*lump_flag = 1;
+				if (strcmp(optarg,"Off")==0) {
+					args.overrides.lump = 0;
+				}
+				else if (strcmp(optarg,"On")==0) {
+					args.overrides.lump = 1;
+				}
 				else {
 				 errorMsg("\n frame3dd command-line error: argument to -l option should be either On or Off\n");
 				 exit(5);
 				}
 				break;
 			case 'm':		/* modal analysis method */
-				if (strcmp(optarg,"J")==0)
-					*modal_flag = 1;
-				else if (strcmp(optarg,"S")==0)
-					*modal_flag = 2;
+				if (strcmp(optarg,"J")==0) {
+					args.overrides.modal = 1;
+				}
+				else if (strcmp(optarg,"S")==0) {
+					args.overrides.modal = 2;
+				}
 				else {
 				 errorMsg("\n frame3dd command-line error: argument to -m option should be either J or S\n");
 				 exit(6);
 				}
 				break;
 			case 't':		/* modal analysis tolerence */
-				*tol_flag = atof(optarg);
-				if (*tol_flag == 0.0) {
+				args.overrides.tol = atof(optarg);
+				if (args.overrides.tol == 0.0) {
 				 errorMsg("\n frame3dd command-line error: argument to -t option should be a number.\n");
 				 exit(7);
 				}
 				break;
 			case 'f':		/* modal analysis freq. shift */
-				*shift_flag = atof(optarg);
-				if (*shift_flag == 0.0) {
+				args.overrides.shift = atof(optarg);
+				if (args.overrides.shift == 0.0) {
 				 errorMsg("\n frame3dd command-line error: argument to -f option should be a number.\n");
 				 exit(8);
 				}
 				break;
 			case 'p':		/* pan rate	*/
-				*pan_flag = atof(optarg);
-				if (*pan_flag < 0.0) {
+				args.overrides.pan = atof(optarg);
+				if (args.overrides.pan < 0.0) {
 				 errorMsg("\n frame3dd command-line error: argument to -p option should be a positive number.\n");
 				 exit(9);
 				}
 				break;
 			case 'r':		/* matrix condensation method */
-				*condense_flag = atoi(optarg);
-				if (*condense_flag < 0 || *condense_flag > 3) {
+				args.overrides.condense = atoi(optarg);
+				if (args.overrides.condense < 0 || args.overrides.condense > 3) {
 				 errorMsg("\n frame3dd command-line error: argument to -r option should be 0, 1, or 2.\n");
 				 exit(10);
 				}
@@ -245,6 +249,7 @@ void parse_options (
 		strcpy( OUT_file, IN_file );
 		strcat( OUT_file, ".out" );
 	}
+	return args;
 }
 
 
@@ -551,20 +556,16 @@ void read_run_data (
 	FILE	*fp,
 	char	*OUT_file,	/* output data file name */
 	int	*shear,
-	int	shear_flag,
 	int	*geom,
-	int	geom_flag,
 	char	*meshpath,
 	char	*plotpath,
 	char	*infcpath,
 	double	*exagg_static,
-	double	exagg_flag,
 	float   *scale,
 	float	*dx,
 	int	*anlyz,
-	int	anlyz_flag,
-	int	debug,
-	RunOptions* run_options
+	RunOptions* run_options,
+	RuntimeArgs args
 ){
 	int	full_len=0, len=0, i;
 	char	base_file[96] = "EMPTY_BASE";
@@ -595,7 +596,7 @@ void read_run_data (
 	strcat(mesh_file,"-msh");
 	output_path(mesh_file,meshpath,FRAME3DD_PATHMAX,NULL);
 
-	if ( debug) {
+	if ( args.debug) {
 		fprintf(stderr,"OUT_FILE  = %s \n", OUT_file);
 		fprintf(stderr,"BASE_FILE = %s \n", base_file);
 		fprintf(stderr,"PLOTPATH  = %s \n", plotpath);
@@ -632,19 +633,19 @@ void read_run_data (
 	run_options->visual.scale = *scale;
 
 	/* over-ride values from input data file with command-line options */
-	if (shear_flag != -1) {
-		*shear = shear_flag;
-		run_options->simulation.shear = shear_flag;
+	if (args.overrides.shear != -1) {
+		*shear = args.overrides.shear;
+		run_options->simulation.shear = args.overrides.shear;
 	}
-	if (geom_flag  != -1) {
-		*geom = geom_flag;
-		run_options->simulation.nonlinear = geom_flag;
+	if (args.overrides.geom  != -1) {
+		*geom = args.overrides.geom;
+		run_options->simulation.nonlinear = args.overrides.geom;
 	}
-	if (exagg_flag != -1.0) {
-		*exagg_static = exagg_flag;
-		run_options->visual.exagg_static = exagg_flag;
+	if (args.overrides.exagg != -1.0) {
+		*exagg_static = args.overrides.exagg;
+		run_options->visual.exagg_static = args.overrides.exagg;
 	}
-	if (anlyz_flag != -1.0) *anlyz = anlyz_flag;
+	if (args.overrides.anlyz != -1) *anlyz = args.overrides.anlyz;
 
 	return;
 }
@@ -1575,13 +1576,14 @@ void read_mass_data (
 		float *NMs, float *NMx, float *NMy, float *NMz,
 		double *L, float *Ax,
 		double *total_mass, double *struct_mass,
-		int *nM, int *Mmethod, int modal_flag,
-		int *lump, int lump_flag,
-		double *tol, double tol_flag, double *shift, double shift_flag,
+		int *nM, int *Mmethod,
+		int *lump,
+		double *tol,
+		double *shift,
 		double *exagg_modal,
 		char modepath[],
-		int anim[], float *pan, float pan_flag,
-		int verbose, int debug
+		int anim[], float *pan,
+		RuntimeArgs args
 ){
 /*	double	ms = 0.0; */
 	int	i,j, jnt, m, b, nA;
@@ -1597,7 +1599,7 @@ void read_mass_data (
 	sfrv=fscanf ( fp, "%d", nM );
 	if (sfrv != 1) sferr("nM value in mass data");
 
-	if ( verbose ) {
+	if ( args.verbose ) {
 		fprintf(stdout," number of dynamic modes ");
 		dots(stdout,28);	fprintf(stdout," nM = %3d\n", *nM);
 	}
@@ -1609,9 +1611,9 @@ void read_mass_data (
 
 	sfrv=fscanf( fp, "%d", Mmethod );
 	if (sfrv != 1) sferr("Mmethod value in mass data");
-	if ( modal_flag != -1 )	*Mmethod = modal_flag;
+	if (args.overrides.modal != -1) *Mmethod = args.overrides.modal;
 
-	if ( verbose ) {
+	if ( args.verbose ) {
 		fprintf(stdout," modal analysis method ");
 		dots(stdout,30);	fprintf(stdout," %3d ",*Mmethod);
 		if ( *Mmethod == 1 ) fprintf(stdout," (Subspace-Jacobi)\n");
@@ -1639,15 +1641,14 @@ void read_mass_data (
 	sfrv=fscanf( fp, "%lf", exagg_modal );
 	if (sfrv != 1) sferr("exagg_modal value in mass data");
 
-	if (  lump_flag != -1   )	*lump = lump_flag;
-	if (  tol_flag  != -1.0 )	*tol  = tol_flag;
-	if ( shift_flag != -1.0 )	*shift = shift_flag;
-
+	if (args.overrides.lump != -1) *lump = args.overrides.lump;
+	if (args.overrides.tol != -1.0 ) *tol  = args.overrides.tol;
+	if (args.overrides.shift != -1.0 ) *shift = args.overrides.shift;
 
 	/* number of nodes with extra inertias */
 	sfrv=fscanf(fp,"%d", nI );
 	if (sfrv != 1) sferr("nI value in mass data");
-	if ( verbose ) {
+	if ( args.verbose ) {
 		fprintf(stdout," number of nodes with extra lumped inertia ");
 		dots(stdout,10);	fprintf(stdout," nI = %3d\n",*nI);
 	}
@@ -1672,7 +1673,7 @@ void read_mass_data (
 	/* number of frame elements with extra beam mass */
 	sfrv=fscanf(fp,"%d", nX );
 	if (sfrv != 1) sferr("nX value in mass data");
-	if ( verbose ) {
+	if ( args.verbose ) {
 		fprintf(stdout," number of frame elements with extra mass ");
 		dots(stdout,11);	fprintf(stdout," nX = %3d\n",*nX);
 		if (sfrv != 1) sferr("element value in extra element mass data");
@@ -1715,7 +1716,7 @@ void read_mass_data (
 /*	for (m=1;m<=nE;m++) ms += EMs[m]; // consistent mass doesn't agree  */
 /*	if ( ms > 0.0 )	    *lump = 1;    // with concentrated masses, EMs  */
 
-	if ( verbose ) {
+	if ( args.verbose ) {
 		fprintf(stdout," structural mass ");
 		dots(stdout,36);	fprintf(stdout,"  %12.4e\n",*struct_mass);
 		fprintf(stdout," total mass ");
@@ -1723,7 +1724,7 @@ void read_mass_data (
 	}
 	sfrv=fscanf ( fp, "%d", &nA );
 	if (sfrv != 1) sferr("nA value in mode animation data");
-	if ( verbose ) {
+	if ( args.verbose ) {
 		fprintf(stdout," number of modes to be animated ");
 		dots(stdout,21);	fprintf(stdout," nA = %3d\n",nA);
 	}
@@ -1737,9 +1738,9 @@ void read_mass_data (
 
 	sfrv=fscanf ( fp, "%f", pan );
 	if (sfrv != 1) sferr("pan value in mode animation data");
-	if ( pan_flag != -1.0 )	*pan = pan_flag;
+	if (args.overrides.pan != -1.0) *pan = args.overrides.pan;
 
-	if ( verbose ) {
+	if ( args.verbose ) {
 		fprintf(stdout," pan rate ");
 		dots(stdout,43); fprintf(stdout," %8.3f\n", *pan);
 	}
@@ -1774,7 +1775,9 @@ void read_condensation_data (
 		FILE *fp,
 		int nN, int nM,
 		int *nC, int *Cdof,
-		int *Cmethod, int condense_flag, int *c, int *m, int verbose
+		int *Cmethod, int *c, int *m,
+		int verbose,
+		RuntimeArgs args
 ){
 	int	i,j,k,  **cm;
 	int	sfrv=0;		/* *scanf return value */
@@ -1789,7 +1792,7 @@ void read_condensation_data (
 		return;
 	}
 
-	if ( condense_flag != -1 )	*Cmethod = condense_flag;
+	if (args.overrides.condense != -1) *Cmethod = args.overrides.condense;
 
 	if ( *Cmethod <= 0 )  {
 		if ( verbose )

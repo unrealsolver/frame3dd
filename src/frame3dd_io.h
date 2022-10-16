@@ -29,6 +29,7 @@
 #include <unistd.h>	/* getopt for parsing command-line options	*/
 
 #include "common.h"
+#include "compat_types.h"
 #include "microstran/vec3.h"
 #include "types.h"
 
@@ -37,24 +38,9 @@
  PARSE_OPTIONS -  parse command line options			     04mar09
  command line options over-ride values in the input data file
 */
-void parse_options (
+RuntimeArgs parse_options (
 	int argc, char *argv[],
-	char IN_file[], char OUT_file[],
-	int *shear_flag,
-	int *geom_flag,
-	int *anlyz_flag,
-	double *exagg_flag,
-	int *D3_flag,	/**< Force 3D plotting in Gnuplot		*/
-	int *lump_flag,
-	int *modal_flag,
-	double *tol_flag,
-	double *shift_flag,
-	float *pan_flag,
-	int *write_matrix,
-	int *axial_sign,
-	int *condense_flag,
-	int *verbose,
-	int *debug
+	char IN_file[], char OUT_file[]
 );
 
 /**
@@ -134,20 +120,16 @@ void read_run_data (
 	FILE *fp,	/**< input data file pointer			*/
 	char OUT_file[], /**< output data file name			*/
 	int *shear,	/**< 1: include shear deformations, 0: don't	*/
-	int shear_flag,	/**< command-line over-ride			*/
 	int *geom,	/**< 1: include geometric stiffness, 0: don't	*/
-	int geom_flag,	/**< command-line over-ride			*/
 	char meshpath[],/**< file name for mesh data output		*/
 	char plotpath[],/**< file name for Gnuplot script		*/
 	char infcpath[],/**< file name for internal force data		*/
 	double *exagg_static,/**< factor for static displ. exaggeration	*/
-	double exagg_flag, /**< static exagg. command-line over-ride	*/
 	float *scale,	/**< zoom scale for 3D plotting in gnuplot      */
 	float *dx,	/**< frame element increment for internal forces*/
 	int *anlyz,	/**< 1: perform elastic analysis, 0: don't	*/
-	int anlyz_flag,	/**< command-line over-ride			*/
-	int debug,	/**< print debugging information		*/
-	RunOptions *run_options  /**< RunOptions object          	*/
+	RunOptions *run_options, /**< RunOptions object          	*/
+	RuntimeArgs args  /**< Command line options			*/
 );
 
 
@@ -226,20 +208,14 @@ void read_mass_data(
 	double *struct_mass, 	/**< mass of structural elements	*/
 	int *nM,	/**< number of modes to find			*/
 	int *Mmethod, 	/**< modal analysis method			*/
-	int modal_flag, /**< command-line over-ride			*/
 	int *lump,	/**< 1: use lumped mass matrix, 0: consistent mass */
-	int lump_flag,	/**< command-line over-ride			*/
 	double *tol,	/**< convergence tolerance for mode shapes	*/
-	double tol_flag, /**< command-line over-ride			*/
 	double *shift,	/**< frequency shift for unrestrained frames	*/
-	double shift_flag, /**< command-line over-ride			*/
 	double *exagg_modal, /**< exaggerate modal displacements	*/
 	char modepath[], /**< filename for mode shape data for plotting	*/
 	int *anim,	/**< list of modes to be graphically animated	*/
 	float *pan,	/**< 1: pan viewpoint during animation, 0: don't */
-	float pan_flag, /**< command-line over-ride			*/
-	int verbose,	/**< 1: copious output to screen, 0: none	*/
-	int debug	/**< 1: debugging output to screen, 0: none	*/
+	RuntimeArgs args /**< Command line options		*/
 );
 
 
@@ -252,10 +228,10 @@ void read_condensation_data(
 	int *nC,	/**< number of nodes with condensed DoF's	*/
 	int *Cdof,	/**< list of DoF's retained in condensed model	*/
 	int *Cmethod,	/**< matrix conden'n method, static, Guyan, dynamic*/
-	int condense_flag, /** command-line over-ride			*/
 	int *c,		/**< list of retained degrees of freedom	*/
 	int *m,		/**< list of retained modes in dynamic condensation */
-	int verbose	/**< 1: copious output to screen, 0: none	*/
+	int verbose,	/**< 1: copious output to screen, 0: none	*/
+	RuntimeArgs args /**< Command line options		*/
 );
 
 
