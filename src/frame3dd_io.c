@@ -414,57 +414,88 @@ void read_node_data(FILE *fp, Frame *frame, InputScope *scope)
  */
 void read_frame_element_data (
 	FILE *fp,
-	vec3 *xyz, float *r,
-	double *L, double *Le,
-	int *N1, int *N2,
-	float *Ax, float *Asy, float *Asz,
-	float *Jx, float *Iy, float *Iz, float *E, float *G, float *p, float *d,
-	Frame *frame
+	Frame *frame,
+	InputScope *scope
 ){
-	int	n1, n2, i, n, b;
+	int	i, n, b;
 	int	*epn, epn0=0;	/* vector of elements per node */
 	int	sfrv=0;		/* *scanf return value */
 	char	errMsg[MAXL];
 
 	// Hook up the old variable names
-	const int nN = frame->nodes.size;
-	const int nE = frame->edges.size;
+	const int nN = scope->nN;
+	const int nE = scope->nE;
+
+					/* allocate memory for frame elements ... */
+	scope->L   = dvector(1,nE);	/* length of each element		*/
+	scope->Le  = dvector(1,nE);	/* effective length of each element	*/
+
+	scope->N1  = ivector(1,nE);	/* node #1 of each element		*/
+	scope->N2  = ivector(1,nE);	/* node #2 of each element		*/
+
+	scope->Ax  =  vector(1,nE);	/* cross section area of each element	*/
+	scope->Asy =  vector(1,nE);	/* shear area in local y direction 	*/
+	scope->Asz =  vector(1,nE);	/* shear area in local z direction	*/
+	scope->Jx  =  vector(1,nE);	/* torsional moment of inertia 		*/
+	scope->Iy  =  vector(1,nE);	/* bending moment of inertia about y-axis */
+	scope->Iz  =  vector(1,nE);	/* bending moment of inertia about z-axis */
+
+	scope->E   =  vector(1,nE);	/* frame element Young's modulus	*/
+	scope->G   =  vector(1,nE);	/* frame element shear modulus		*/
+	scope->p   =  vector(1,nE);	/* element rotation angle about local x axis */
+	scope->d   =  vector(1,nE);	/* element mass density			*/
 
 	epn = ivector(1,nN);
+
+	// Aliases
+	const vec3 *xyz = scope->xyz;
+	const int *N1 = scope->N1;
+	const int *N2 = scope->N2;
+	const float *rj = scope->rj;
+	const float *Ax = scope->Ax;
+	const float *Asy = scope->Asy;
+	const float *Asz = scope->Asz;
+	const float *Jx = scope->Jx;
+	const float *Iy = scope->Iy;
+	const float *Iz = scope->Iz;
+	const float *E = scope->E;
+	const float *G = scope->G;
+	const double *L = scope->L;
+	const double *Le = scope->Le;
 
 	for (n=1;n<=nN;n++) epn[n] = 0;
 
 	for (i=1;i<=nE;i++) {		/* read frame element properties */
-		sfrv=fscanf(fp, "%d", &b );
+		sfrv = fscanf(fp, "%d", &b);
 		if (sfrv != 1) sferr("frame element number in element data");
 		if ( b <= 0 || b > nE ) {
 		    sprintf(errMsg,"\n  error in frame element property data: Element number out of range  \n Frame element number: %d  \n", b);
 		    errorMsg(errMsg);
 		    exit(51);
 		}
-		sfrv=fscanf(fp, "%d %d", &N1[b], &N2[b] );
+		sfrv=fscanf(fp, "%d %d", &scope->N1[b], &scope->N2[b]);
 
 		epn[N1[b]] += 1;
 		epn[N2[b]] += 1;
 
 		if (sfrv != 2) sferr("node numbers in frame element data");
-		if ( N1[b] <= 0 || N1[b] > nN || N2[b] <= 0 || N2[b] > nN ) {
+		if (N1[b] <= 0 || N1[b] > nN || N2[b] <= 0 || N2[b] > nN ) {
 		    sprintf(errMsg,"\n  error in frame element property data: node number out of range  \n Frame element number: %d \n", b);
 		    errorMsg(errMsg);
 		    exit(52);
 		}
-		sfrv=fscanf(fp, "%f %f %f", &Ax[b], &Asy[b], &Asz[b] );
+		sfrv=fscanf(fp, "%f %f %f", &scope->Ax[b], &scope->Asy[b], &scope->Asz[b] );
 		if (sfrv != 3) sferr("section areas in frame element data");
-		sfrv=fscanf(fp, "%f %f %f", &Jx[b],  &Iy[b],  &Iz[b] );
+		sfrv=fscanf(fp, "%f %f %f", &scope->Jx[b],  &scope->Iy[b],  &scope->Iz[b] );
 		if (sfrv != 3) sferr("section inertias in frame element data");
-		sfrv=fscanf(fp, "%f %f", &E[b], &G[b] );
+		sfrv=fscanf(fp, "%f %f", &scope->E[b], &scope->G[b] );
 		if (sfrv != 2) sferr("material moduli in frame element data");
-		sfrv=fscanf(fp, "%f", &p[b]);
+		sfrv=fscanf(fp, "%f", &scope->p[b]);
 		if (sfrv != 1) sferr("roll angle in frame element data");
 
-		p[b] = p[b]*PI/180.0;	/* convert from degrees to radians */
+		scope->p[b] = scope->p[b] * PI / 180.0; /* convert from degrees to radians */
 
-		sfrv=fscanf(fp, "%f",  &d[b]);
+		sfrv=fscanf(fp, "%f",  &scope->d[b]);
 		if (sfrv != 1) sferr("mass density in frame element data");
 
 		if ( Ax[b] < 0 || Asy[b] < 0 || Asz[b] < 0 ||
@@ -498,7 +529,8 @@ void read_frame_element_data (
 		 errorMsg(errMsg);
 		 exit(58);
 		}
-		if ( d[b] <= 0 ) {
+
+		if ( scope->d[b] <= 0 ) {
 		 sprintf(errMsg,"\n  error : mass density d is not positive   \n  Frame element number: %d  \n", b);
 		 errorMsg(errMsg);
 		 exit(59);
@@ -507,12 +539,12 @@ void read_frame_element_data (
 		Edge *edge = &frame->edges.data[i - 1];
 		edge->start = N1[b];
 		edge->end = N2[b];
-		edge->roll = p[b];
+		edge->roll = scope->p[b];
 		// FIXME Deallocate
 		edge->material = (Material *) malloc(sizeof(Material));
 		edge->material->E = E[b];
 		edge->material->G = G[b];
-		edge->material->density = d[b];
+		edge->material->density = scope->d[b];
 		// FIXME Deallocate
 		edge->profile = (Profile *) malloc(sizeof(Profile));
 		edge->profile->Ax = Ax[b];
@@ -523,18 +555,18 @@ void read_frame_element_data (
 		edge->profile->Iz = Iz[b];
 	}
 
-	for (b=1;b<=nE;b++) {		/* calculate frame element lengths */
-		n1 = N1[b];
-		n2 = N2[b];
+	for (b=1; b<=nE; b++) {		/* calculate frame element lengths */
+		const int n1 = N1[b];
+		const int n2 = N2[b];
 
 #define SQ(X) ((X)*(X))
-		L[b] =	SQ( xyz[n2].x - xyz[n1].x ) +
-			SQ( xyz[n2].y - xyz[n1].y ) +
-			SQ( xyz[n2].z - xyz[n1].z );
+		scope->L[b] =	SQ( xyz[n2].x - xyz[n1].x ) +
+				SQ( xyz[n2].y - xyz[n1].y ) +
+				SQ( xyz[n2].z - xyz[n1].z );
 #undef SQ
 
-		L[b] = sqrt( L[b] );
-		Le[b] = L[b] - r[n1] - r[n2];
+		scope->L[b] = sqrt( L[b] );
+		scope->Le[b] = L[b] - rj[n1] - rj[n2];
 		if ( n1 == n2 || L[b] == 0.0 ) {
 		   sprintf(errMsg,
 			" Frame elements must start and stop at different nodes\n  frame element %d  N1= %d N2= %d L= %e\n   Perhaps frame element number %d has not been specified.\n  or perhaps the Input Data file is missing expected data.\n",
@@ -544,21 +576,21 @@ void read_frame_element_data (
 		}
 		if ( Le[b] <= 0.0 ) {
 		   sprintf(errMsg, " Node  radii are too large.\n  frame element %d  N1= %d N2= %d L= %e \n  r1= %e r2= %e Le= %e \n",
-		   b, n1,n2, L[b], r[n1], r[n2], Le[b] );
+		   b, n1,n2, L[b], rj[n1], rj[n2], Le[b] );
 		   errorMsg(errMsg);
 		   exit(61);
 		}
 	}
 
-	for ( n=1; n<=nN; n++ ) {
-	 if ( epn[n] == 0 ) {
-	  sprintf(errMsg,"node or frame element property data:\n     node number %3d is unconnected. \n", n);
-	  sferr(errMsg);
-	  epn0 += 1;
-	 }
+	for (n=1; n<=nN; n++) {
+		if (epn[n] == 0) {
+			sprintf(errMsg, "node or frame element property data:\n     node number %3d is unconnected. \n", n);
+			sferr(errMsg);
+			epn0 += 1;
+		}
 	}
 
-	free_ivector(epn,1,nN);
+	free_ivector(epn, 1, nN);
 
 	if ( epn0 > 0 ) exit(42);
 

@@ -108,16 +108,8 @@ void read_node_data (
 */
 void read_frame_element_data (
 	FILE *fp,	/**< input data file pointer			*/
-	vec3 *xyz,	/**< XYZ coordinates of each node		*/
-	float *rj,	/**< rigid radius of each node			*/
-	double *L, double *Le,	/**< length of each frame element, effective */
-	int *N1, int *N2, 	/**< node connectivity			*/
-	float *Ax, float *Asy, float *Asz,	/**< section areas	*/
-	float *Jx, float *Iy, float *Iz,	/**< section inertias	*/
-	float *E, float *G,	/**< elastic moduli and shear moduli	*/
-	float *p,	/**< roll angle of each frame element (radians)	*/
-	float *d,	/**< mass density of each frame element		*/
-	Frame *frame	/**< New frame data struct */
+	Frame *frame,	/**< New frame data struct */
+	InputScope *scope
 );
 
 

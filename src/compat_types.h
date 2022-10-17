@@ -35,7 +35,8 @@ typedef struct {
 		nE,		// number of frame Elements
 		nL,		// number of Load cases
 		DoF,		// number of Degrees of Freedom
-		nR;		// number of restrained nodes
+		nR,		// number of restrained nodes
+		*N1, *N2;	// begin and end node numbers
 	float
 		*rj,		// node size radius, for finite sizes
 		*Ax,*Asy, *Asz,	// cross section areas, incl. shear
@@ -53,6 +54,9 @@ typedef struct {
 		gX[_NL_],	// gravitational acceleration in global X
 		gY[_NL_],	// gravitational acceleration in global Y
 		gZ[_NL_];	// gravitational acceleration in global Z
+	double
+		*L,		// node-to-node length of each element
+		*Le;		// effcve lngth, accounts for node size
 } InputScope;
 
 #endif /* COMPAT_TYPES_H */
