@@ -86,13 +86,21 @@ void parse_input(FILE *fp, const char *tpath);
 
 
 /**
+ * Read number of nodes from the input file
+ */
+void read_node_number(
+	FILE *fp,	/**< input data file pointer			*/
+	int *nN,
+	const int verbose
+);
+
+/**
 	Read node coordinate data
 */
 void read_node_data (
 	FILE *fp,	/**< input data file pointer			*/
-	vec3 *xyz,	/**< XYZ coordinates of each node		*/
-	float *rj,	/**< rigid radius of each node			*/
-	Frame *frame	/**< Refacotred data				*/
+	Frame *frame,	/**< Refacotred data				*/
+	InputScope *scope /**< 'Compatibility' input data scope		*/
 );
 
 /**
@@ -138,16 +146,16 @@ void read_run_data (
 */
 void read_reaction_data(
 	FILE *fp,	/**< input data file pointer			*/
-	int DoF,	/**< number of degrees of freedom		*/
-	int nN,		/**< number of nodes				*/
-	int *nR,	/**< number of nodes with reactions		*/
-	int *q,		/**< q[i]=0: DoF i is fixed, q[i]=1: DoF i is free */
-	int *r,		/**< r[i]=1: DoF i is fixed, r[i]=0: DoF i is free */
-	int *sumR,	/**< sum of vector R				*/
 	int verbose,	/**< 1: copious screen output; 0: none		*/
-	Frame *frame
+	Frame *frame,
+	InputScope *scope
 );
 
+void read_element_number(
+	FILE *fp,	/**< input data file pointer			*/
+	int *nE,
+	const int verbose
+);
 
 /**
 	read load information data, form un-restrained load vector

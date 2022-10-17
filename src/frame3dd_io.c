@@ -353,38 +353,56 @@ void display_version_about()
  fprintf(stderr," http://www.fsf.org/copyleft/gpl.html\n");
 }
 
+void read_node_number(FILE *fp, int *nN, const int verbose) {
+	const int sfrv = fscanf(fp, "%d", nN ); // number of nodes
+	if (sfrv != 1)	sferr("nN value for number of nodes");
+	if ( verbose ) {	/* display nN */
+		fprintf(stdout," number of nodes ");
+		dots(stdout, 36); fprintf(stdout," nN =%4d ", *nN);
+	}
+}
 
 /*
  * READ_NODE_DATA  -  read node location data
  * 04 Jan 2009
  */
-void read_node_data( FILE *fp, vec3 *xyz, float *r, Frame *frame )
+void read_node_data(FILE *fp, Frame *frame, InputScope *scope)
 {
 	int	i, j,
 		sfrv=0;		/* *scanf return value	*/
 	char	errMsg[MAXL];
+	const int nN = scope->nN;
 
-	for (i=1; i <= frame->nodes.size; i++) {		/* read node coordinates	*/
+	scope->rj = vector(1, nN); /* rigid radius around each node */
+	scope->xyz = (vec3 *) calloc(nN + 1, sizeof(vec3)); /* node coordinates */
+
+	for (i=1; i <= nN; i++) {		/* read node coordinates	*/
 		Node *node = &frame->nodes.data[i - 1];
 		sfrv=fscanf(fp, "%d", &j );
 		if (sfrv != 1) sferr("node number in node data");
-		if ( j <= 0 || j > frame->nodes.size ) {
+		if ( j <= 0 || j > nN ) {
 		    sprintf(
 			  errMsg, "\nERROR: in node coordinate data, node number out of range\n(node number %d is <= 0 or > %d)\n",
-			  j, frame->nodes.size
+			  j, nN
 		    );
 		    errorMsg(errMsg);
 		    exit(41);
 		}
-		sfrv=fscanf(fp, "%lf %lf %lf %f", &xyz[j].x, &xyz[j].y, &xyz[j].z, &r[j]);
+		sfrv = fscanf(
+			fp, "%lf %lf %lf %f",
+			&scope->xyz[j].x, &scope->xyz[j].y, &scope->xyz[j].z,
+			&scope->rj[j]
+		);
+
 		if (sfrv != 4) sferr("node coordinates in node data");
 		/* fprintf(stderr,"\nj = %d, pos = (%lf, %lf, %lf), r = %f", j, xyz[j].x, xyz[j].y, xyz[j].z, r[j]); */
-		r[j] = fabs(r[j]);
+		scope->rj[j] = fabs(scope->rj[j]);
 
-		node->position.x = xyz[j].x;
-		node->position.y = xyz[j].y;
-		node->position.z = xyz[j].z;
-		node->radius = r[j];
+		// Copy data to convenience data types
+		node->position.x = scope->xyz[j].x;
+		node->position.y = scope->xyz[j].y;
+		node->position.z = scope->xyz[j].z;
+		node->radius = scope->rj[j];
 	}
 	return;
 }
@@ -808,38 +826,49 @@ void getline_no_comment (
  * READ_REACTION_DATA - Read fixed node displacement boundary conditions
  * 29 Dec 2009
  */
-void read_reaction_data (
-	FILE *fp, int DoF, int nN, int *nR, int *q, int *r,
-	int *sumR, int verbose, Frame *frame
-){
+void read_reaction_data(
+	FILE *fp, int verbose, Frame *frame, InputScope *scope
+) {
 	int	i,j,l;
 	int	sfrv=0;		/* *scanf return value */
 	char	errMsg[MAXL];
+	const int DoF = scope->DoF;
+	const int nN = scope->nN;
 
-	for (i=1; i<=DoF; i++) r[i] = 0;
+	scope->q = ivector(1, DoF);	/* allocate memory for reaction data ... */
+	scope->r = ivector(1, DoF);	/* allocate memory for reaction data ... */
 
-	sfrv=fscanf(fp,"%d", nR );	/* read restrained degrees of freedom */
+	for (i=1; i<=DoF; i++)
+		scope->r[i] = 0;
+
+	// alias
+	const int *r = scope->r;
+
+	sfrv=fscanf(fp,"%d", &scope->nR);	/* read restrained degrees of freedom */
+	// alias
+	const int nR = scope->nR;
 	if (sfrv != 1) sferr("number of reactions in reaction data");
 	if ( verbose ) {
 		fprintf(stdout," number of nodes with reactions ");
 		dots(stdout,21);
-		fprintf(stdout," nR =%4d ", *nR );
+		fprintf(stdout," nR =%4d ", nR);
 	}
-	if ( *nR < 0 || *nR > DoF/6 ) {
+	if (nR < 0 || nR > nN) {
 		fprintf(stderr," number of nodes with reactions ");
 		dots(stderr,21);
-		fprintf(stderr," nR = %3d ", *nR );
+		fprintf(stderr," nR = %3d ", nR);
 		sprintf(errMsg,"\n  error: valid ranges for nR is 0 ... %d \n", DoF/6 );
 		errorMsg(errMsg);
 		exit(80);
 	}
 
-	for (i=1; i <= *nR; i++) {
+	for (i=1; i <= nR; i++) {
 	    sfrv=fscanf(fp,"%d", &j);
 	    if (sfrv != 1) sferr("node number in reaction data");
 	    for (l=5; l >=0; l--) {
+		const int idx = 6 * j - l;
+		sfrv=fscanf(fp, "%d", &scope->r[idx]);
 
-		sfrv=fscanf(fp,"%d", &r[6*j-l] );
 		if (sfrv != 1) sferr("reaction value in reaction data");
 
 		if ( j > nN ) {
@@ -847,17 +876,22 @@ void read_reaction_data (
 		    errorMsg(errMsg);
 		    exit(81);
 		}
-		if ( r[6*j-l] != 0 && r[6*j-l] != 1 ) {
+		if (r[idx] != 0 && r[idx] != 1 ) {
 		    sprintf(errMsg,"\n  error in reaction data: Reaction data must be 0 or 1\n   Data for node %d, DoF %d is %d\n", j, 6-l, r[6*j-l] );
 		    errorMsg(errMsg);
 		    exit(82);
 		}
 	    }
-	    *sumR = 0;
-	    for (l=5; l >=0; l--) 	*sumR += r[6*j-l];
-	    if ( *sumR == 0 ) {
+
+	    scope->sumR = 0;
+	    for (l=5; l >=0; l--) {
+		    const int idx = 6 * j - l;
+		    scope->sumR += r[idx];
+	    }
+
+	    if (scope->sumR == 0) {
 		sprintf(errMsg,"\n  error: node %3d has no reactions\n   Remove node %3d from the list of reactions\n   and set nR to %3d \n",
-		j, j, *nR-1 );
+		j, j, nR - 1);
 		errorMsg(errMsg);
 		exit(83);
 	    }
@@ -871,23 +905,32 @@ void read_reaction_data (
 		node->dof.zz = r[j * 6];
 	    }
 	}
-	*sumR=0;	for (i=1;i<=DoF;i++)	*sumR += r[i];
-	if ( *sumR < 4 ) {
-	    sprintf(errMsg,"\n  Warning:  un-restrained structure   %d imposed reactions.\n  At least 4 reactions are required to support static loads.\n", *sumR );
+	scope->sumR=0;	for (i=1;i<=DoF;i++)	scope->sumR += r[i];
+	if (scope->sumR < 4) {
+	    sprintf(errMsg,"\n  Warning:  un-restrained structure   %d imposed reactions.\n  At least 4 reactions are required to support static loads.\n", scope->sumR);
 	    errorMsg(errMsg);
 	    /*	exit(84); */
 	}
-	if ( *sumR >= DoF ) {
-	    sprintf(errMsg,"\n  error in reaction data:  Fully restrained structure\n   %d imposed reactions >= %d degrees of freedom\n", *sumR, DoF );
+	if (scope->sumR >= DoF) {
+	    sprintf(errMsg,"\n  error in reaction data:  Fully restrained structure\n   %d imposed reactions >= %d degrees of freedom\n", scope->sumR, DoF);
 	    errorMsg(errMsg);
 	    exit(85);
 	}
 
-	for (i=1; i<=DoF; i++) if (r[i]) q[i] = 0; else q[i] = 1;
+	for (i=1; i<=DoF; i++)
+		scope->q[i] = r[i] == 0;
 
 	return;
 }
 
+void read_element_number(FILE *fp, int *nE, const int verbose) {
+	const int sfrv = fscanf(fp, "%d", nE);	/* number of frame elements	*/
+	if (sfrv != 1)	sferr("nE value for number of frame elements");
+	if ( verbose ) {	/* display nE */
+		fprintf(stdout," number of frame elements");
+		dots(stdout,28);	fprintf(stdout," nE =%4d ", *nE);
+	}
+};
 
 /*
  * READ_AND_ASSEMBLE_LOADS
