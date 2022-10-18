@@ -6,7 +6,7 @@
  http://frame3dd.sourceforge.net/
  ---------------------------------------------------------------------------
  Copyright (C) 1992-2009  Henri P. Gavin
- 
+
     FRAME3DD is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -28,8 +28,8 @@
 
 #include "microstran/vec3.h"
 
-#include "common.h" 
-#include "HPGutil.h" 
+#include "common.h"
+#include "HPGutil.h"
 
 
 /**
@@ -48,15 +48,15 @@
 	Q=TF;   U=TD;   T'T=I;   Q=kU;   TF=kTD;   T'TF=T'kTD;   T'kT = K;   F=KD
 */
 void coord_trans (
-	vec3 *xyz, 			// XYZ coordinate of all nodes
+	const vec3 *xyz,		// XYZ coordinate of all nodes
 	double L, 			// length of all beam elements
 	int n1, int n2, 		// node connectivity
-	double *t1, double *t2, double *t3, double *t4, double *t5, 
+	double *t1, double *t2, double *t3, double *t4, double *t5,
 	double *t6, double *t7, double *t8, double *t9, // coord transformation
-	float p				// the roll angle (radians) 
+	float p				// the roll angle (radians)
 );
 
-/**  
+/**
   ATMA - carry out the coordinate transformation
 */
 void atma (

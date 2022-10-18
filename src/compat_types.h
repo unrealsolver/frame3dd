@@ -26,6 +26,7 @@ typedef struct RuntimeArgs {
 		verbose;	// 1: copious screen output, 0: none
 } RuntimeArgs;
 
+// TODO check which properties were never used
 typedef struct {
 	vec3	*xyz;		// X,Y,Z node coordinates (global)
 	int
@@ -34,6 +35,12 @@ typedef struct {
 		nN,		// number of Nodes
 		nE,		// number of frame Elements
 		nL,		// number of Load cases
+		nD[_NL_],	// number of prescribed nodal displ'nts
+		nF[_NL_],	// number of loaded nodes
+		nU[_NL_],	// number of members w/ unifm dist loads
+		nW[_NL_],	// number of members w/ trapz dist loads
+		nP[_NL_],	// number of members w/ conc point loads
+		nT[_NL_],	// number of members w/ temp. changes
 		DoF,		// number of Degrees of Freedom
 		nR,		// number of restrained nodes
 		*N1, *N2;	// begin and end node numbers
@@ -56,7 +63,13 @@ typedef struct {
 		gZ[_NL_];	// gravitational acceleration in global Z
 	double
 		*L,		// node-to-node length of each element
-		*Le;		// effcve lngth, accounts for node size
+		*Le,		// effcve lngth, accounts for node size
+		*F,	 	// total load vectors for a load case
+		***eqF_mech,	// equivalent end forces from mech loads global
+		***eqF_temp,	// equivalent end forces from temp loads global
+		**F_mech,	// mechanical load vectors, all load cases
+		**F_temp,	// thermal load vectors, all load cases
+		**Q;		// local member node end-forces
 } InputScope;
 
 #endif /* COMPAT_TYPES_H */

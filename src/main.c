@@ -79,20 +79,10 @@ For compilation/installation, see README.txt.
 
 	FILE	*fp;		// input and output file pointer
 
-	vec3	*xyz;		// X,Y,Z node coordinates (global)
-
-	float	*rj = NULL,	// node size radius, for finite sizes
-		***U=NULL,	// uniform distributed member loads
-		***W=NULL,	// trapizoidal distributed member loads
-		***P=NULL,	// member concentrated loads
-		***T=NULL,	// member temperature  loads
-		**Dp=NULL,	// prescribed node displacements
+	float
 		*d, *EMs=NULL,	// member densities and extra inertia
 		*NMs=NULL, 	// mass of a node
 		*NMx,*NMy,*NMz,	// inertia of a node in global coord
-		gX[_NL_],	// gravitational acceleration in global X
-		gY[_NL_],	// gravitational acceleration in global Y
-		gZ[_NL_],	// gravitational acceleration in global Z
 		pan=1.0,	// >0: pan during animation; 0: don't
 		scale=1.0,	// zoom scale for 3D plotting in Gnuplot
 		dx=1.0;		// x-increment for internal force data
@@ -102,18 +92,12 @@ For compilation/installation, see README.txt.
 		traceK = 0.0,	// trace of the global stiffness matrix
 		**M = NULL,	// global mass matrix
 		traceM = 0.0,	// trace of the global mass matrix
-		***eqF_mech=NULL,// equivalent end forces from mech loads global
-		***eqF_temp=NULL,// equivalent end forces from temp loads global
-		**F_mech=NULL,	// mechanical load vectors, all load cases
-		**F_temp=NULL,	// thermal load vectors, all load cases
-		*F  = NULL, 	// total load vectors for a load case
 		*R  = NULL,	// total reaction force vector
 		*dR = NULL,	// incremental reaction force vector
 		*D  = NULL,	// displacement vector
 		*dD = NULL,	// incremental displacement vector
 		//dDdD = 0.0,	// dD' * dD
 		*dF = NULL,	// equilibrium error in nonlinear anlys
-		**Q = NULL,	// local member node end-forces
 		tol = 1.0e-9,	// tolerance for modal convergence
 		shift = 0.0,	// shift-factor for rigid-body-modes
 		struct_mass,	// mass of structural system
@@ -136,12 +120,6 @@ For compilation/installation, see README.txt.
 		nE=0,		// number of frame Elements
 		nL=0, lc=0,	// number of Load cases
 		DoF=0, i, j,	// number of Degrees of Freedom
-		nD[_NL_],	// number of prescribed nodal displ'nts
-		nF[_NL_],	// number of loaded nodes
-		nU[_NL_],	// number of members w/ unifm dist loads
-		nW[_NL_],	// number of members w/ trapz dist loads
-		nP[_NL_],	// number of members w/ conc point loads
-		nT[_NL_],	// number of members w/ temp. changes
 		nI=0,		// number of nodes w/ extra inertia
 		nX=0,		// number of elemts w/ extra mass
 		nC=0,		// number of condensed nodes
@@ -237,9 +215,6 @@ For compilation/installation, see README.txt.
 	// Read nN
 	read_node_number(fp, &nN, verbose);
 	scope.nN = nN;
-					/* allocate memory for node data ... */
-	rj  =  vector(1,nN);		/* rigid radius around each node */
-	xyz = (vec3 *) calloc(nN + 1, sizeof(vec3));	/* node coordinates */
 	frame->nodes.size = nN;
 	// FIXME deallocte
 	frame->nodes.data = (Node *) calloc(nN, sizeof(Node));
@@ -277,6 +252,7 @@ For compilation/installation, see README.txt.
 	sfrv=fscanf(fp, "%d", &nL );	/* number of load cases		*/
 	load_cases->size = nL;
 	results->size = nL;
+	scope.nL = nL;
 
 	if (sfrv != 1)	sferr("nL value for number of load cases");
 	if ( verbose ) {	/* display nL */
@@ -308,22 +284,11 @@ For compilation/installation, see README.txt.
 		results->data[i].edges = calloc(nE, sizeof(EdgeResult));
 	}
 
-	U   =  D3matrix(1,nL,1,nE,1,4);    /* uniform load on each member */
-	W   =  D3matrix(1,nL,1,10*nE,1,13);/* trapezoidal load on each member */
-	P   =  D3matrix(1,nL,1,10*nE,1,5); /* internal point load each member */
-	T   =  D3matrix(1,nL,1,nE,1,8);    /* internal temp change each member*/
-	Dp  =  matrix(1,nL,1,DoF); /* prescribed displacement of each node */
 
-	F_mech  = dmatrix(1,nL,1,DoF);	/* mechanical load vector	*/
-	F_temp  = dmatrix(1,nL,1,DoF);	/* temperature load vector	*/
-	F       = dvector(1,DoF);	/* external load vector	*/
 	dF	= dvector(1,DoF);	/* equilibrium error {F} - [K]{D} */
 
-	eqF_mech =  D3dmatrix(1,nL,1,nE,1,12); /* eqF due to mech loads */
-	eqF_temp =  D3dmatrix(1,nL,1,nE,1,12); /* eqF due to temp loads */
 
 	K   = dmatrix(1,DoF,1,DoF);	/* global stiffness matrix	*/
-	Q   = dmatrix(1,nE,1,12);	/* end forces for each member	*/
 
 	D   = dvector(1,DoF);	/* displacments of each node		*/
 	dD  = dvector(1,DoF);	/* incremental displ. of each node	*/
@@ -355,12 +320,7 @@ For compilation/installation, see README.txt.
 	pkSy = dmatrix(1,nL,1,nE);
 	pkSz = dmatrix(1,nL,1,nE);
 
-	read_and_assemble_loads( fp, DoF, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
-			scope.Ax,scope.Asy,scope.Asz, scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-			scope.d, gX, gY, gZ, scope.r, shear,
-			nF, nU, nW, nP, nT, nD,
-			Q, F_temp, F_mech, F, U, W, P, T,
-			Dp, eqF_mech, eqF_temp, verbose, frame, load_cases );
+	read_and_assemble_loads(fp, shear, verbose, frame, load_cases, &scope);
 
 	if ( verbose ) {	/* display load data complete */
 		fprintf(stdout,"                                                     ");
@@ -397,9 +357,9 @@ For compilation/installation, see README.txt.
 	}
 
 	write_input_data(
-		fp, title, nD, scope.nR, nF, nU, nW, nP, nT,
+		fp, title, scope.nD, scope.nR, scope.nF, scope.nU, scope.nW, scope.nP, scope.nT,
 		scope.p, scope.d,
-		F_temp, F_mech, Dp, scope.r, U, W, P, T,
+		scope.F_temp, scope.F_mech, scope.Dp, scope.r, scope.U, scope.W, scope.P, scope.T,
 		shear, anlyz, geom, frame, load_cases
 	);
 
@@ -418,20 +378,22 @@ For compilation/installation, see README.txt.
 				fprintf(stdout,"\n");
 			}
 
+			printf("X3\n");
 			LoadCaseResult *lc_result = &results->data[lc - 1];
 
 			/*  initialize displacements and displ. increment to {0}  */
 			/*  initialize reactions     and react. increment to {0}  */
 			for (i=1; i<=DoF; i++) D[i] = dD[i] = R[i] = dR[i] = 0.0;
 
+			// FIXME Possible duplicates initialization in the read_and_assemble_loads
 			/*  initialize internal element end forces Q = {0}	*/
-			for (i=1; i<=nE; i++) for (j=1;j<=12;j++) Q[i][j] = 0.0;
+			for (i=1; i<=nE; i++) for (j=1;j<=12;j++) scope.Q[i][j] = 0.0;
 
 			/*  elastic stiffness matrix  [K({D}^(i))], {D}^(0)={0} (i=0) */
 			assemble_K(
 				K, DoF, nE, scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2,
 				scope.Ax, scope.Asy, scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-				shear, geom, Q, debug
+				shear, geom, scope.Q, debug
 			);
 
 #ifdef MATRIX_DEBUG
@@ -439,12 +401,12 @@ For compilation/installation, see README.txt.
 #endif
 
 			/* first apply temperature loads only, if there are any ... */
-			if (nT[lc] > 0) {
+			if (scope.nT[lc] > 0) {
 				if (verbose)
 					fprintf(stdout," Linear Elastic Analysis ... Temperature Loads\n");
 
 				/*  solve {F_t} = [K({D=0})] * {D_t} */
-				solve_system(K,dD,F_temp[lc],dR,DoF,scope.q,scope.r,&ok,verbose,&rms_resid);
+				solve_system(K,dD,scope.F_temp[lc],dR,DoF,scope.q,scope.r,&ok,verbose,&rms_resid);
 
 				/* increment {D_t} = {0} + {D_t} temp.-induced displ */
 				for (i=1; i<=DoF; i++)	if (scope.q[i]) D[i] += dD[i];
@@ -454,9 +416,9 @@ For compilation/installation, see README.txt.
 				if (geom) {	/* assemble K = Ke + Kg */
 				 /* compute   {Q}={Q_t} ... temp.-induced forces     */
 					element_end_forces(
-						Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+						scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
 						scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
-						eqF_temp[lc], eqF_mech[lc], D, shear, geom,
+						scope.eqF_temp[lc], scope.eqF_mech[lc], D, shear, geom,
 						&axial_strain_warning
 					);
 					/* assemble temp.-stressed stiffness [K({D_t})]     */
@@ -464,28 +426,28 @@ For compilation/installation, see README.txt.
 						K, DoF, nE, scope.xyz, scope.rj,
 						scope.L, scope.Le, scope.N1, scope.N2,
 						scope.Ax,scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-						shear,geom, Q, debug
+						shear,geom, scope.Q, debug
 					);
 				}
 			}
 
 			/* ... then apply mechanical loads only, if there are any ... */
 			if (
-				nF[lc]>0 || nU[lc]>0 || nW[lc]>0 || nP[lc]>0 || nD[lc]>0 ||
-				gX[lc] != 0 || gY[lc] != 0 || gZ[lc] != 0
+				scope.nF[lc]>0 || scope.nU[lc]>0 || scope.nW[lc]>0 || scope.nP[lc]>0 || scope.nD[lc]>0 ||
+				scope.gX[lc] != 0 || scope.gY[lc] != 0 || scope.gZ[lc] != 0
 			) {
 				if ( verbose )
 					fprintf(stdout," Linear Elastic Analysis ... Mechanical Loads\n");
 				/* incremental displ at react'ns = prescribed displ */
-				for (i=1; i<=DoF; i++)	if (scope.r[i]) dD[i] = Dp[lc][i];
+				for (i=1; i<=DoF; i++)	if (scope.r[i]) dD[i] = scope.Dp[lc][i];
 
 				/*  solve {F_m} = [K({D_t})] * {D_m}	*/
-				solve_system(K,dD,F_mech[lc],dR,DoF,scope.q,scope.r,&ok,verbose,&rms_resid);
+				solve_system(K,dD,scope.F_mech[lc],dR,DoF,scope.q,scope.r,&ok,verbose,&rms_resid);
 
 				/* combine {D} = {D_t} + {D_m}	*/
 				for (i=1; i<=DoF; i++) {
 					if (scope.q[i])	D[i] += dD[i];
-					else {		D[i]  = Dp[lc][i]; dD[i] = 0.0; }
+					else {		D[i]  = scope.Dp[lc][i]; dD[i] = 0.0; }
 				}
 				/* combine {R} = {R_t} + {R_m} --- for linear systems */
 				for (i=1; i<=DoF; i++) if (scope.r[i]) R[i] += dR[i];
@@ -493,16 +455,16 @@ For compilation/installation, see README.txt.
 
 
 			/*  combine {F} = {F_t} + {F_m} */
-			for (i=1; i<=DoF; i++)	F[i] = F_temp[lc][i] + F_mech[lc][i];
+			for (i=1; i<=DoF; i++)	scope.F[i] = scope.F_temp[lc][i] + scope.F_mech[lc][i];
 
 			/*  element forces {Q} for displacements {D}	*/
-			element_end_forces ( Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+			element_end_forces ( scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
 					scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
-					eqF_temp[lc], eqF_mech[lc], D, shear, geom,
+					scope.eqF_temp[lc], scope.eqF_mech[lc], D, shear, geom,
 					&axial_strain_warning );
 
 			/*  check the equilibrium error	*/
-			error = equilibrium_error ( dF, F, K, D, DoF, scope.q,scope.r );
+			error = equilibrium_error ( dF, scope.F, K, D, DoF, scope.q,scope.r );
 
 			if ( geom && verbose )
 				fprintf(stdout,"\n Non-Linear Elastic Analysis ...\n");
@@ -526,12 +488,12 @@ For compilation/installation, see README.txt.
 				/*  assemble stiffness matrix [K({D}^(i))]	      */
 				assemble_K ( K, DoF, nE, scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2,
 					scope.Ax,scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-					shear,geom, Q, debug );
+					shear,geom, scope.Q, debug );
 
 				/*  compute equilibrium error, {dF}, at iteration i   */
 				/*  {dF}^(i) = {F} - [K({D}^(i))]*{D}^(i)	      */
 				/*  convergence criteria = || {dF}^(i) ||  /  || F || */
-				error = equilibrium_error ( dF, F, K, D, DoF, scope.q,scope.r );
+				error = equilibrium_error ( dF, scope.F, K, D, DoF, scope.q,scope.r );
 
 				/*  Powell-Symmetric-Broyden secant stiffness update  */
 				// PSB_update ( Ks, dF, dD, DoF );  /* not helpful?   */
@@ -550,9 +512,9 @@ For compilation/installation, see README.txt.
 				for (i=1; i<=DoF; i++)	if (scope.q[i])	D[i] += dD[i];
 
 				/*  element forces {Q} for displacements {D}^(i)      */
-				element_end_forces ( Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+				element_end_forces ( scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
 					scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
-					eqF_temp[lc], eqF_mech[lc], D, shear, geom,
+					scope.eqF_temp[lc], scope.eqF_mech[lc], D, shear, geom,
 					&axial_strain_warning );
 
 				if ( verbose ) { /*  display equilibrium error        */
@@ -567,7 +529,7 @@ For compilation/installation, see README.txt.
 			/*   strain limit _and_ buckling failure ... */
 			if (axial_strain_warning > 0 && ExitCode == 181) ExitCode = 183;
 
-			if ( geom )	compute_reaction_forces( R,F,K, D, DoF, scope.r );
+			if ( geom )	compute_reaction_forces( R,scope.F,K, D, DoF, scope.r );
 
 			/*  dealocate Broyden secant stiffness matrix, Ks */
 			// if ( geom )	free_dmatrix(Ks, 1, DoF, 1, DoF );
@@ -578,19 +540,19 @@ For compilation/installation, see README.txt.
 			/*  display RMS equilibrium error */
 			if ( verbose && ok >= 0 ) evaluate ( error, rms_resid, tol );
 
-			write_static_struct(lc_result, frame, D, Q);
+			write_static_struct(lc_result, frame, D, scope.Q);
 
 			write_static_results ( fp, lc, DoF, scope.N1, scope.N2,
-					F,D,R, scope.r,Q, rms_resid, ok, args.axial_sign, frame, load_cases );
+					scope.F,D,R, scope.r,scope.Q, rms_resid, ok, args.axial_sign, frame, load_cases );
 
 			if ( filetype == 1 ) {		// .CSV format output
 				write_static_csv(OUT_file, title,
-				    lc, DoF, scope.N1, scope.N2, F,D,R, scope.r,Q, error, ok, frame, load_cases );
+				    lc, DoF, scope.N1, scope.N2, scope.F,D,R, scope.r,scope.Q, error, ok, frame, load_cases );
 			}
 
 			if ( filetype == 2 ) {		// .m matlab format output
 				write_static_mfile (OUT_file, title, lc, DoF,
-						scope.N1,scope.N2, F,D,R, scope.r,Q, error, ok, frame, load_cases);
+						scope.N1,scope.N2, scope.F,D,R, scope.r,scope.Q, error, ok, frame, load_cases);
 			}
 
 /*
@@ -602,10 +564,10 @@ For compilation/installation, see README.txt.
  */
 
 			write_internal_forces ( OUT_file, fp, infcpath, lc, title, dx, scope.xyz,
-						Q, scope.L, scope.N1, scope.N2,
+						scope.Q, scope.L, scope.N1, scope.N2,
 						scope.p,
-						scope.d, gX[lc], gY[lc], gZ[lc],
-						nU[lc],U[lc],nW[lc],W[lc],nP[lc],P[lc],
+						scope.d, scope.gX[lc], scope.gY[lc], scope.gZ[lc],
+						scope.nU[lc],scope.U[lc],scope.nW[lc],scope.W[lc],scope.nP[lc],scope.P[lc],
 						D, shear, error, frame, load_cases );
 
 			static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
@@ -739,12 +701,12 @@ For compilation/installation, see README.txt.
 	}
 
 	/* deallocate memory used for each frame analysis variable */
-	deallocate ( nN, nE, nL, nF, nU, nW, nP, nT, DoF, nM,
-			xyz, rj, scope.L, scope.Le, scope.N1, scope.N2, scope.q,scope.r,
+	deallocate ( nN, nE, nL, scope.nF, scope.nU, scope.nW, scope.nP, scope.nT, DoF, nM,
+			scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2, scope.q,scope.r,
 			scope.Ax, scope.Asy, scope.Asz, scope.Jx, scope.Iy, scope.Iz, scope.E, scope.G, scope.p,
-			U,W,P,T, Dp, F_mech, F_temp,
-			eqF_mech, eqF_temp, F, dF,
-			K, Q, D, dD, R, dR,
+			scope.U,scope.W,scope.P,scope.T, scope.Dp, scope.F_mech, scope.F_temp,
+			scope.eqF_mech, scope.eqF_temp, scope.F, dF,
+			K, scope.Q, D, dD, R, dR,
 			scope.d,EMs,NMs,NMx,NMy,NMz, M,f,V, c, m,
 			pkNx, pkVy, pkVz, pkTx, pkMy, pkMz,
 			pkDx, pkDy, pkDz, pkRx, pkSy, pkSz

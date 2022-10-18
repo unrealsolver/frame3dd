@@ -154,40 +154,11 @@ void read_element_number(
 */
 void read_and_assemble_loads(
 	FILE *fp,	/**< input data file pointer			*/
-	int DoF,	/**< number of degrees of freedom		*/
-	vec3 *xyz,	/**< XYZ coordinates of each node		*/
-	double *L, double *Le,	/**< length of each frame element, effective */
-	int *N1, int *N2, 	/**< node connectivity			*/
-	float *Ax, float *Asy, float *Asz,	/**< section areas	*/
-	float *Iy, float *Iz,	/**< section inertias			*/
-	float *E, float *G,	/**< elastic moduli and shear moduli	*/
-	float *p,	/**< roll angle of each frame element (radians)	*/
-	float *d,  /**< mass density of each frame element		*/
-	float *gX, /**< gravitational acceleration in global X each load case */
-	float *gY, /**< gravitational acceleration in global Y each load case */
-	float *gZ, /**< gravitational acceleration in global Z each load case */
-	int *r,		/**< r[i]=1: DoF i is fixed, r[i]=0: DoF i is free */
 	int shear,	/**< 1: include shear deformations, 0: don't	*/
-	int *nF, 		/**< number of concentrated node loads */
-	int *nU, 		/**< number of uniformly distributed loads */
-	int *nW,		/**< number of trapezoidaly distributed loads */
-	int *nP, 		/**< number of concentrated point loads	*/
-	int *nT, 		/**< number of temperature loads	*/
-	int *nD,		/**< number of prescribed displacements */
-	double **Q,		/**< frame element end forces, every beam */
-	double **F_temp, 	/**< thermal loads			*/
-	double **F_mech, 	/**< mechanical loads			*/
-	double *Fo,	 	/**< thermal loads + mechanical loads	*/
-	float ***U,		/**< uniformally distributed loads	*/
-	float ***W,		/**< trapezoidally distributed loads	*/
-	float ***P,		/**< concentrated point loads		*/
-	float ***T,	 	/**< temperature loads			*/
-	float **Dp,		/**< prescribed displacements at rctns	*/
-	double ***eqF_mech,	/**< equiv. end forces for mech. loads	*/
-	double ***eqF_temp,	/**< equiv. end forces for temp. loads	*/
 	int verbose,		/**< 1: copious output to screen, 0: none */
 	Frame *frame,
-	LoadCases *load_cases	/**< Load cases array  */
+	LoadCases *load_cases,	/**< Load cases array  */
+	InputScope *scope	/**< Input data struct */
 );
 
 
