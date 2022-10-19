@@ -51,12 +51,17 @@ typedef struct {
 		Mmethod,	// 1: Subspace Jacobi, 2: Stodola
 		Cmethod,	// matrix condensation method
 		Cdof,		// number of condensed degrees o freedom
-		*c,	// vector of DoF's to condense
-		*m,	// vector of modes to condense
+		*c,		// vector of DoF's to condense
+		*m,		// vector of modes to condense
 		lump,		// 1: lumped, 0: consistent mass matrix
+		shear,		// indicates shear deformation
+		geom,		// indicates  geometric nonlinearity
+		anlyz,		// 1: stiffness analysis, 0: data check
 		anim[128];	// the modes to be animated
 	float
-		pan,	// >0: pan during animation; 0: don't
+		pan,		// >0: pan during animation; 0: don't
+		scale,		// zoom scale for 3D plotting in Gnuplot
+		dx,		// x-increment for internal force data
 		*rj,		// node size radius, for finite sizes
 		*Ax,*Asy, *Asz,	// cross section areas, incl. shear
 		*Jx,*Iy,*Iz,	// section inertias
@@ -86,6 +91,7 @@ typedef struct {
 		shift,		// shift-factor for rigid-body-modes
 		struct_mass,	// mass of structural system
 		total_mass,	// total structural mass and extra mass
+		exagg_static,	// exaggerate static displ. in mesh data
 		exagg_modal;	// exaggerate modal displ. in mesh data
 } InputScope;
 

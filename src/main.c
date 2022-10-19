@@ -79,10 +79,6 @@ For compilation/installation, see README.txt.
 
 	FILE	*fp;		// input and output file pointer
 
-	float
-		scale=1.0,	// zoom scale for 3D plotting in Gnuplot
-		dx=1.0;		// x-increment for internal force data
-
 	double	**K=NULL,	// equilibrium stiffness matrix
 		// **Ks=NULL,	// Broyden secant stiffness matrix
 		traceK = 0.0,	// trace of the global stiffness matrix
@@ -99,8 +95,7 @@ For compilation/installation, see README.txt.
 		rms_resid=1.0,	// root mean square of residual displ. error
 		error = 1.0,	// rms equilibrium error and reactions
 		Cfreq = 0.0,	// frequency used for Guyan condensation
-		**Kc, **Mc,	// condensed stiffness and mass matrices
-		exagg_static=10;// exaggerate static displ. in mesh data
+		**Kc, **Mc;	// condensed stiffness and mass matrices
 
 		// peak internal forces, moments, and displacments
 		// in each frame element and each load case
@@ -111,9 +106,6 @@ For compilation/installation, see README.txt.
 		nE=0,		// number of frame Elements
 		nL=0, lc=0,	// number of Load cases
 		DoF=0, i, j,	// number of Degrees of Freedom
-		shear=0,	// indicates shear deformation
-		geom=0,		// indicates  geometric nonlinearity
-		anlyz=1,	// 1: stiffness analysis, 0: data check
 		nM_calc,	// number of modes to calculate
 		iter=0,		// number of iterations
 		ok=1,		// number of (-ve) diag. terms of L D L'
@@ -130,13 +122,6 @@ For compilation/installation, see README.txt.
 	LoadCases *load_cases = (LoadCases *) malloc(sizeof(LoadCases));
 	Results *results = (Results *) malloc(sizeof(Results));
 	RunOptions *run_options = (RunOptions *) malloc(sizeof(RunOptions));
-	run_options->simulation.dx = dx;
-	run_options->simulation.nonlinear = geom;
-	run_options->simulation.shear = shear;
-	run_options->visual.pan = 1.0;
-	run_options->visual.scale = scale;
-	run_options->visual.exagg_static = exagg_static;
-	run_options->visual.exagg_modal = exagg_static;
 
 	const RuntimeArgs args = parse_options ( argc, argv, IN_file, OUT_file );
 	// FIXME tmp aliases
@@ -224,10 +209,7 @@ For compilation/installation, see README.txt.
 	read_frame_element_data(fp, frame, &scope);
 	if ( verbose) 	fprintf(stdout," ... complete\n");
 
-	read_run_data ( fp, OUT_file, &shear, &geom,
-			meshpath, plotpath, infcpath,
-			&exagg_static, &scale, &dx,
-			&anlyz, run_options, args);
+	read_run_data(fp, OUT_file, meshpath, plotpath, infcpath, run_options, args, &scope);
 
 	sfrv=fscanf(fp, "%d", &nL );	/* number of load cases		*/
 	load_cases->size = nL;
@@ -291,7 +273,7 @@ For compilation/installation, see README.txt.
 	pkSy = dmatrix(1,nL,1,nE);
 	pkSz = dmatrix(1,nL,1,nE);
 
-	read_and_assemble_loads(fp, shear, verbose, frame, load_cases, &scope);
+	read_and_assemble_loads(fp, verbose, frame, load_cases, &scope);
 
 	if ( verbose ) {	/* display load data complete */
 		fprintf(stdout,"                                                     ");
@@ -325,11 +307,11 @@ For compilation/installation, see README.txt.
 		fp, title, scope.nD, scope.nR, scope.nF, scope.nU, scope.nW, scope.nP, scope.nT,
 		scope.p, scope.d,
 		scope.F_temp, scope.F_mech, scope.Dp, scope.r, scope.U, scope.W, scope.P, scope.T,
-		shear, anlyz, geom, frame, load_cases
+		scope.shear, scope.anlyz, scope.geom, frame, load_cases
 	);
 
 
-	if ( anlyz ) {			/* solve the problem	*/
+	if ( scope.anlyz ) {			/* solve the problem	*/
 		srand(time(NULL));
 		for (lc=1; lc<=nL; lc++) {	/* begin load case analysis loop */
 			if ( verbose ) {	/* display the load case number  */
@@ -357,7 +339,7 @@ For compilation/installation, see README.txt.
 			assemble_K(
 				K, DoF, nE, scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2,
 				scope.Ax, scope.Asy, scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-				shear, geom, scope.Q, debug
+				scope.shear, scope.geom, scope.Q, debug
 			);
 
 #ifdef MATRIX_DEBUG
@@ -377,12 +359,12 @@ For compilation/installation, see README.txt.
 				/* increment {R_t} = {0} + {R_t} temp.-induced react */
 				for (i=1; i<=DoF; i++)	if (scope.r[i]) R[i] += dR[i];
 
-				if (geom) {	/* assemble K = Ke + Kg */
+				if (scope.geom) {	/* assemble K = Ke + Kg */
 				 /* compute   {Q}={Q_t} ... temp.-induced forces     */
 					element_end_forces(
 						scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
 						scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
-						scope.eqF_temp[lc], scope.eqF_mech[lc], D, shear, geom,
+						scope.eqF_temp[lc], scope.eqF_mech[lc], D, scope.shear, scope.geom,
 						&axial_strain_warning
 					);
 					/* assemble temp.-stressed stiffness [K({D_t})]     */
@@ -390,7 +372,7 @@ For compilation/installation, see README.txt.
 						K, DoF, nE, scope.xyz, scope.rj,
 						scope.L, scope.Le, scope.N1, scope.N2,
 						scope.Ax,scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-						shear,geom, scope.Q, debug
+						scope.shear, scope.geom, scope.Q, debug
 					);
 				}
 			}
@@ -424,13 +406,13 @@ For compilation/installation, see README.txt.
 			/*  element forces {Q} for displacements {D}	*/
 			element_end_forces ( scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
 					scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
-					scope.eqF_temp[lc], scope.eqF_mech[lc], D, shear, geom,
+					scope.eqF_temp[lc], scope.eqF_mech[lc], D, scope.shear, scope.geom,
 					&axial_strain_warning );
 
 			/*  check the equilibrium error	*/
 			error = equilibrium_error ( dF, scope.F, K, D, DoF, scope.q,scope.r );
 
-			if ( geom && verbose )
+			if ( scope.geom && verbose )
 				fprintf(stdout,"\n Non-Linear Elastic Analysis ...\n");
 
 /*
@@ -445,14 +427,14 @@ For compilation/installation, see README.txt.
  */
 
 			/* quasi Newton-Raphson iteration for geometric nonlinearity  */
-			if (geom) { error = 1.0; ok = 0; iter = 0; } /* re-initialize */
-			while ( geom && error > scope.tol && iter < 500 && ok >= 0) {
+			if (scope.geom) { error = 1.0; ok = 0; iter = 0; } /* re-initialize */
+			while ( scope.geom && error > scope.tol && iter < 500 && ok >= 0) {
 				++iter;
 
 				/*  assemble stiffness matrix [K({D}^(i))]	      */
 				assemble_K ( K, DoF, nE, scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2,
 					scope.Ax,scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-					shear,geom, scope.Q, debug );
+					scope.shear,scope.geom, scope.Q, debug );
 
 				/*  compute equilibrium error, {dF}, at iteration i   */
 				/*  {dF}^(i) = {F} - [K({D}^(i))]*{D}^(i)	      */
@@ -478,7 +460,7 @@ For compilation/installation, see README.txt.
 				/*  element forces {Q} for displacements {D}^(i)      */
 				element_end_forces ( scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
 					scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
-					scope.eqF_temp[lc], scope.eqF_mech[lc], D, shear, geom,
+					scope.eqF_temp[lc], scope.eqF_mech[lc], D, scope.shear, scope.geom,
 					&axial_strain_warning );
 
 				if ( verbose ) { /*  display equilibrium error        */
@@ -493,7 +475,7 @@ For compilation/installation, see README.txt.
 			/*   strain limit _and_ buckling failure ... */
 			if (axial_strain_warning > 0 && ExitCode == 181) ExitCode = 183;
 
-			if ( geom )	compute_reaction_forces( R,scope.F,K, D, DoF, scope.r );
+			if ( scope.geom )	compute_reaction_forces( R,scope.F,K, D, DoF, scope.r );
 
 			/*  dealocate Broyden secant stiffness matrix, Ks */
 			// if ( geom )	free_dmatrix(Ks, 1, DoF, 1, DoF );
@@ -527,18 +509,18 @@ For compilation/installation, see README.txt.
  * 			 " and re-run the analysis. \n");
  */
 
-			write_internal_forces ( OUT_file, fp, infcpath, lc, title, dx, scope.xyz,
+			write_internal_forces ( OUT_file, fp, infcpath, lc, title, scope.dx, scope.xyz,
 						scope.Q, scope.L, scope.N1, scope.N2,
 						scope.p,
 						scope.d, scope.gX[lc], scope.gY[lc], scope.gZ[lc],
 						scope.nU[lc],scope.U[lc],scope.nW[lc],scope.W[lc],scope.nP[lc],scope.P[lc],
-						D, shear, error, frame, load_cases );
+						D, scope.shear, error, frame, load_cases );
 
 			static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
 						lc, DoF,
 						scope.xyz, scope.L, scope.N1, scope.N2, scope.p, D,
-						exagg_static, anlyz,
-						dx, scale, load_cases, frame, args );
+						scope.exagg_static, scope.anlyz,
+						scope.dx, scope.scale, load_cases, frame, args );
 
 		} /* end load case loop */
 	} else {		/*  data check only  */
@@ -551,15 +533,15 @@ For compilation/installation, see README.txt.
 			IN_file, infcpath, meshpath, plotpath, title,
 			lc, DoF,
 			scope.xyz, scope.L, scope.N1, scope.N2, scope.p, D,
-			exagg_static, anlyz,
-			dx, scale, load_cases, frame, args
+			scope.exagg_static, scope.anlyz,
+			scope.dx, scope.scale, load_cases, frame, args
 		);
 	}
 
 
 	if ( scope.nM > 0 ) { /* carry out modal analysis */
 
-		if(verbose & anlyz) fprintf(stdout,"\n\n Modal Analysis ...\n");
+		if(verbose & scope.anlyz) fprintf(stdout,"\n\n Modal Analysis ...\n");
 
 		nM_calc = scope.nM + 8 < scope.nM * 2
 			? scope.nM + 8
@@ -597,7 +579,7 @@ For compilation/installation, see README.txt.
 			save_ut_dmatrix ( "Md", M, DoF, "w" );/* dynamic mass matx */
 		}
 
-		if ( anlyz ) {	/* subspace or stodola methods */
+		if ( scope.anlyz ) {	/* subspace or stodola methods */
 			if( scope.Mmethod == 1 )
 				subspace( K, M, DoF, nM_calc, f, V, scope.tol,scope.shift,&iter,&ok, verbose );
 			if( scope.Mmethod == 2 )
@@ -614,14 +596,14 @@ For compilation/installation, see README.txt.
 	fprintf(fp,"\n");
 	fclose (fp);
 
-	if ( scope.nM > 0 && anlyz ) {	/* write modal analysis results */
+	if ( scope.nM > 0 && scope.anlyz ) {	/* write modal analysis results */
 		modal_mesh ( IN_file, meshpath, modepath, plotpath, title,
 				DoF, scope.nM, scope.xyz, scope.L, scope.N1, scope.N2, scope.p,
-				M, f, V, scope.exagg_modal, anlyz, frame, args );
+				M, f, V, scope.exagg_modal, scope.anlyz, frame, args );
 
 		animate ( IN_file, meshpath, modepath, plotpath, title,scope.anim,
 				DoF, scope.nM, scope.xyz, scope.L, scope.p, scope.N1, scope.N2, f,
-				V, scope.exagg_modal, scope.pan, scale, frame, args );
+				V, scope.exagg_modal, scope.pan, scope.scale, frame, args );
 	}
 
 	if ( scope.nC > 0 ) {		/* matrix condensation of stiffness and mass */
@@ -642,19 +624,19 @@ For compilation/installation, see README.txt.
 
 		if ( scope.m[1] > 0 && scope.nM > 0 )	Cfreq = f[scope.m[1]];
 
-		if ( scope.Cmethod == 1 && anlyz) {	/* static condensation only */
+		if ( scope.Cmethod == 1 && scope.anlyz) {	/* static condensation only */
 			static_condensation(K, DoF, scope.c, scope.Cdof, Kc, 0 );
 			if ( verbose )
 				fprintf(stdout,"   static condensation of K complete\n");
 		}
-		if ( scope.Cmethod == 2 && anlyz ) {  /*  dynamic condensation  */
+		if ( scope.Cmethod == 2 && scope.anlyz ) {  /*  dynamic condensation  */
 			paz_condensation(M, K, DoF, scope.c, scope.Cdof, Mc,Kc, Cfreq, 0 );
 			if ( verbose ) {
 				fprintf(stdout,"   Paz condensation of K and M complete");
 				fprintf(stdout," ... dynamics matched at %f Hz.\n", Cfreq );
 			}
 		}
-		if ( scope.Cmethod == 3 && scope.nM > 0 && anlyz ) {
+		if ( scope.Cmethod == 3 && scope.nM > 0 && scope.anlyz ) {
 			modal_condensation(M,K, DoF, scope.r, scope.c, scope.Cdof, Mc,Kc, V,f, scope.m, 0 );
 			if ( verbose )
 				fprintf(stdout,"   modal condensation of K and M complete\n");

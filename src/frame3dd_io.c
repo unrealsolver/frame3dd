@@ -606,18 +606,19 @@ void read_frame_element_data (
 void read_run_data (
 	FILE	*fp,
 	char	*OUT_file,	/* output data file name */
-	int	*shear,
-	int	*geom,
 	char	*meshpath,
 	char	*plotpath,
 	char	*infcpath,
-	double	*exagg_static,
-	float   *scale,
-	float	*dx,
-	int	*anlyz,
 	RunOptions* run_options,
-	RuntimeArgs args
+	RuntimeArgs args,
+	InputScope *scope
 ){
+	// Initialize
+	scope->anlyz = 1;
+	scope->exagg_static = 10;
+	scope->scale = 1;
+	scope->dx = 1;
+
 	int	full_len=0, len=0, i;
 	char	base_file[96] = "EMPTY_BASE";
 	char	mesh_file[96] = "EMPTY_MESH";
@@ -655,48 +656,51 @@ void read_run_data (
 		fprintf(stderr,"MESHPATH  = %s \n", meshpath);
 	}
 
-	sfrv=fscanf( fp, "%d %d %lf %f %f", shear,geom, exagg_static,scale,dx );
+	sfrv=fscanf(
+		fp, "%d %d %lf %f %f",
+		&scope->shear, &scope->geom, &scope->exagg_static, &scope->scale, &scope->dx
+	);
 	if (sfrv != 5) sferr("shear, geom, exagg_static, scale, or dx variables");
 
-	if (*shear != 0 && *shear != 1) {
+	if (scope->shear != 0 && scope->shear != 1) {
 	    errorMsg(" Rember to specify shear deformations with a 0 or a 1 \n after the frame element property info.\n");
 	    exit(71);
 	}
 
-	if (*geom != 0 && *geom != 1) {
+	if (scope->geom != 0 && scope->geom != 1) {
 	    errorMsg(" Rember to specify geometric stiffness with a 0 or a 1 \n after the frame element property info.\n");
 	    exit(72);
 	}
 
-	if ( *exagg_static < 0.0 ) {
+	if ( scope->exagg_static < 0.0 ) {
 	    errorMsg(" Remember to specify an exageration factor greater than zero.\n");
 	    exit(73);
 	}
 
-	if ( *dx <= 0.0 && *dx != -1 ) {
+	if ( scope->dx <= 0.0 && scope->dx != -1 ) {
 	    errorMsg(" Remember to specify a frame element increment greater than zero.\n");
 	    exit(74);
 	}
-	run_options->simulation.shear = *shear;
-	run_options->simulation.nonlinear = *geom;
-	run_options->simulation.dx = *dx;
-	run_options->visual.exagg_static = *exagg_static;
-	run_options->visual.scale = *scale;
+	run_options->simulation.shear = scope->shear;
+	run_options->simulation.nonlinear = scope->geom;
+	run_options->simulation.dx = scope->dx;
+	run_options->visual.exagg_static = scope->exagg_static;
+	run_options->visual.scale = scope->scale;
 
 	/* over-ride values from input data file with command-line options */
 	if (args.overrides.shear != -1) {
-		*shear = args.overrides.shear;
+		scope->shear = args.overrides.shear;
 		run_options->simulation.shear = args.overrides.shear;
 	}
 	if (args.overrides.geom  != -1) {
-		*geom = args.overrides.geom;
+		scope->geom = args.overrides.geom;
 		run_options->simulation.nonlinear = args.overrides.geom;
 	}
 	if (args.overrides.exagg != -1.0) {
-		*exagg_static = args.overrides.exagg;
+		scope->exagg_static = args.overrides.exagg;
 		run_options->visual.exagg_static = args.overrides.exagg;
 	}
-	if (args.overrides.anlyz != -1) *anlyz = args.overrides.anlyz;
+	if (args.overrides.anlyz != -1) scope->anlyz = args.overrides.anlyz;
 
 	return;
 }
@@ -976,7 +980,6 @@ void read_element_number(FILE *fp, int *nE, const int verbose) {
  */
 void read_and_assemble_loads (
 		FILE *fp,
-		int shear,
 		int verbose,
 		Frame *frame,
 		LoadCases *load_cases,
@@ -996,6 +999,7 @@ void read_and_assemble_loads (
 	const int *nP = scope->nP;
 	const int *nT = scope->nT;
 	const int DoF = scope->DoF;
+	const int shear = scope->shear;
 	const double *L = scope->L;
 	const double *Le = scope->Le;
 	const float *Ax = scope->Ax;

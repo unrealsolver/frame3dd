@@ -119,17 +119,12 @@ void read_frame_element_data (
 void read_run_data (
 	FILE *fp,	/**< input data file pointer			*/
 	char OUT_file[], /**< output data file name			*/
-	int *shear,	/**< 1: include shear deformations, 0: don't	*/
-	int *geom,	/**< 1: include geometric stiffness, 0: don't	*/
 	char meshpath[],/**< file name for mesh data output		*/
 	char plotpath[],/**< file name for Gnuplot script		*/
 	char infcpath[],/**< file name for internal force data		*/
-	double *exagg_static,/**< factor for static displ. exaggeration	*/
-	float *scale,	/**< zoom scale for 3D plotting in gnuplot      */
-	float *dx,	/**< frame element increment for internal forces*/
-	int *anlyz,	/**< 1: perform elastic analysis, 0: don't	*/
 	RunOptions *run_options, /**< RunOptions object          	*/
-	RuntimeArgs args  /**< Command line options			*/
+	RuntimeArgs args,  /**< Command line options			*/
+	InputScope *scope
 );
 
 
@@ -154,7 +149,6 @@ void read_element_number(
 */
 void read_and_assemble_loads(
 	FILE *fp,	/**< input data file pointer			*/
-	int shear,	/**< 1: include shear deformations, 0: don't	*/
 	int verbose,		/**< 1: copious output to screen, 0: none */
 	Frame *frame,
 	LoadCases *load_cases,	/**< Load cases array  */
