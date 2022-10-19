@@ -15,3 +15,5 @@ jobs:
         run: python3 -m pip install scons
       - name: Run build
         run: scons
+      - name: Run e2e tests
+        run: python3 e2e_runner.py
