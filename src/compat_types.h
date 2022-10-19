@@ -35,6 +35,9 @@ typedef struct {
 		nN,		// number of Nodes
 		nE,		// number of frame Elements
 		nL,		// number of Load cases
+		nX,		// number of elemts w/ extra mass
+		nI,		// number of nodes w/ extra inertia
+		nM,		// number of desired modes
 		nD[_NL_],	// number of prescribed nodal displ'nts
 		nF[_NL_],	// number of loaded nodes
 		nU[_NL_],	// number of members w/ unifm dist loads
@@ -43,8 +46,17 @@ typedef struct {
 		nT[_NL_],	// number of members w/ temp. changes
 		DoF,		// number of Degrees of Freedom
 		nR,		// number of restrained nodes
-		*N1, *N2;	// begin and end node numbers
+		nC,		// number of condensed nodes
+		*N1, *N2,	// begin and end node numbers
+		Mmethod,	// 1: Subspace Jacobi, 2: Stodola
+		Cmethod,	// matrix condensation method
+		Cdof,		// number of condensed degrees o freedom
+		*c,	// vector of DoF's to condense
+		*m,	// vector of modes to condense
+		lump,		// 1: lumped, 0: consistent mass matrix
+		anim[128];	// the modes to be animated
 	float
+		pan,	// >0: pan during animation; 0: don't
 		*rj,		// node size radius, for finite sizes
 		*Ax,*Asy, *Asz,	// cross section areas, incl. shear
 		*Jx,*Iy,*Iz,	// section inertias
@@ -69,7 +81,12 @@ typedef struct {
 		***eqF_temp,	// equivalent end forces from temp loads global
 		**F_mech,	// mechanical load vectors, all load cases
 		**F_temp,	// thermal load vectors, all load cases
-		**Q;		// local member node end-forces
+		**Q,		// local member node end-forces
+		tol,		// tolerance for modal convergence
+		shift,		// shift-factor for rigid-body-modes
+		struct_mass,	// mass of structural system
+		total_mass,	// total structural mass and extra mass
+		exagg_modal;	// exaggerate modal displ. in mesh data
 } InputScope;
 
 #endif /* COMPAT_TYPES_H */

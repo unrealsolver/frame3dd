@@ -80,10 +80,6 @@ For compilation/installation, see README.txt.
 	FILE	*fp;		// input and output file pointer
 
 	float
-		*d, *EMs=NULL,	// member densities and extra inertia
-		*NMs=NULL, 	// mass of a node
-		*NMx,*NMy,*NMz,	// inertia of a node in global coord
-		pan=1.0,	// >0: pan during animation; 0: don't
 		scale=1.0,	// zoom scale for 3D plotting in Gnuplot
 		dx=1.0;		// x-increment for internal force data
 
@@ -98,18 +94,13 @@ For compilation/installation, see README.txt.
 		*dD = NULL,	// incremental displacement vector
 		//dDdD = 0.0,	// dD' * dD
 		*dF = NULL,	// equilibrium error in nonlinear anlys
-		tol = 1.0e-9,	// tolerance for modal convergence
-		shift = 0.0,	// shift-factor for rigid-body-modes
-		struct_mass,	// mass of structural system
-		total_mass,	// total structural mass and extra mass
 		*f  = NULL,	// resonant frequencies
 		**V = NULL,	// resonant mode-shapes
 		rms_resid=1.0,	// root mean square of residual displ. error
 		error = 1.0,	// rms equilibrium error and reactions
 		Cfreq = 0.0,	// frequency used for Guyan condensation
 		**Kc, **Mc,	// condensed stiffness and mass matrices
-		exagg_static=10,// exaggerate static displ. in mesh data
-		exagg_modal=10;	// exaggerate modal displ. in mesh data
+		exagg_static=10;// exaggerate static displ. in mesh data
 
 		// peak internal forces, moments, and displacments
 		// in each frame element and each load case
@@ -120,23 +111,12 @@ For compilation/installation, see README.txt.
 		nE=0,		// number of frame Elements
 		nL=0, lc=0,	// number of Load cases
 		DoF=0, i, j,	// number of Degrees of Freedom
-		nI=0,		// number of nodes w/ extra inertia
-		nX=0,		// number of elemts w/ extra mass
-		nC=0,		// number of condensed nodes
 		shear=0,	// indicates shear deformation
 		geom=0,		// indicates  geometric nonlinearity
 		anlyz=1,	// 1: stiffness analysis, 0: data check
-		nM=0,		// number of desired modes
-		Mmethod,	// 1: Subspace Jacobi, 2: Stodola
 		nM_calc,	// number of modes to calculate
-		lump=1,		// 1: lumped, 0: consistent mass matrix
 		iter=0,		// number of iterations
 		ok=1,		// number of (-ve) diag. terms of L D L'
-		anim[128],	// the modes to be animated
-		Cdof=0,		// number of condensed degrees o freedom
-		Cmethod=0,	// matrix condensation method
-		*c=NULL,	// vector of DoF's to condense
-		*m=NULL,	// vector of modes to condense
 		filetype=0,	// 1 if .CSV, 2 if file is Matlab
 		axial_strain_warning = 0, // 0: "ok", 1: strain > 0.001
 		ExitCode = 0;	// error code returned by Frame3DD
@@ -153,7 +133,7 @@ For compilation/installation, see README.txt.
 	run_options->simulation.dx = dx;
 	run_options->simulation.nonlinear = geom;
 	run_options->simulation.shear = shear;
-	run_options->visual.pan = pan;
+	run_options->visual.pan = 1.0;
 	run_options->visual.scale = scale;
 	run_options->visual.exagg_static = exagg_static;
 	run_options->visual.exagg_modal = exagg_static;
@@ -287,7 +267,6 @@ For compilation/installation, see README.txt.
 
 	dF	= dvector(1,DoF);	/* equilibrium error {F} - [K]{D} */
 
-
 	K   = dmatrix(1,DoF,1,DoF);	/* global stiffness matrix	*/
 
 	D   = dvector(1,DoF);	/* displacments of each node		*/
@@ -295,14 +274,6 @@ For compilation/installation, see README.txt.
 	R   = dvector(1,DoF);	/* reaction forces			*/
 	dR  = dvector(1,DoF);	/* incremental reaction forces		*/
 
-	EMs =  vector(1,nE);	/* lumped mass for each frame element	*/
-	NMs =  vector(1,nN);	/* node mass for each node		*/
-	NMx =  vector(1,nN);	/* node inertia about global X axis	*/
-	NMy =  vector(1,nN);	/* node inertia about global Y axis	*/
-	NMz =  vector(1,nN);	/* node inertia about global Z axis	*/
-
-	c = ivector(1,DoF); 	/* vector of condensed degrees of freedom */
-	m = ivector(1,DoF); 	/* vector of condensed mode numbers	*/
 
 	// peak axial forces, shears, torques, and moments along each element
 	pkNx = dmatrix(1,nL,1,nE);
@@ -327,21 +298,15 @@ For compilation/installation, see README.txt.
 		fprintf(stdout," load data ... complete\n");
 	}
 
-	read_mass_data( fp, IN_file, nN, nE, &nI, &nX,
-			scope.d, EMs, NMs, NMx, NMy, NMz,
-			scope.L, scope.Ax, &total_mass, &struct_mass, &nM,
-			&Mmethod, &lump, &tol, &shift,
-			&exagg_modal, modepath, anim, &pan,
-			args );
+	read_mass_data(fp, IN_file, modepath, args, &scope);
 	if ( verbose ) {	/* display mass data complete */
 		fprintf(stdout,"                                                     ");
 		fprintf(stdout," mass data ... complete\n");
 	}
 
-	read_condensation_data( fp, nN,nM, &nC, &Cdof,
-			&Cmethod, c,m, verbose, args );
+	read_condensation_data(fp, verbose, args, &scope);
 
-	if( nC>0 && verbose ) {	/*  display condensation data complete */
+	if( scope.nC>0 && verbose ) {	/*  display condensation data complete */
 		fprintf(stdout,"                                      ");
 		fprintf(stdout," matrix condensation data ... complete\n");
 	}
@@ -378,7 +343,6 @@ For compilation/installation, see README.txt.
 				fprintf(stdout,"\n");
 			}
 
-			printf("X3\n");
 			LoadCaseResult *lc_result = &results->data[lc - 1];
 
 			/*  initialize displacements and displ. increment to {0}  */
@@ -482,7 +446,7 @@ For compilation/installation, see README.txt.
 
 			/* quasi Newton-Raphson iteration for geometric nonlinearity  */
 			if (geom) { error = 1.0; ok = 0; iter = 0; } /* re-initialize */
-			while ( geom && error > tol && iter < 500 && ok >= 0) {
+			while ( geom && error > scope.tol && iter < 500 && ok >= 0) {
 				++iter;
 
 				/*  assemble stiffness matrix [K({D}^(i))]	      */
@@ -538,7 +502,7 @@ For compilation/installation, see README.txt.
 				save_ut_dmatrix ( "Ks", K, DoF, "w" );
 
 			/*  display RMS equilibrium error */
-			if ( verbose && ok >= 0 ) evaluate ( error, rms_resid, tol );
+			if ( verbose && ok >= 0 ) evaluate ( error, rms_resid, scope.tol );
 
 			write_static_struct(lc_result, frame, D, scope.Q);
 
@@ -593,19 +557,21 @@ For compilation/installation, see README.txt.
 	}
 
 
-	if ( nM > 0 ) { /* carry out modal analysis */
+	if ( scope.nM > 0 ) { /* carry out modal analysis */
 
 		if(verbose & anlyz) fprintf(stdout,"\n\n Modal Analysis ...\n");
 
-		nM_calc = (nM+8)<(2*nM) ? nM+8 : 2*nM;		/* Bathe */
+		nM_calc = scope.nM + 8 < scope.nM * 2
+			? scope.nM + 8
+			: scope.nM * 2;		/* Bathe */
 
 		M   = dmatrix(1,DoF,1,DoF);
 		f   = dvector(1,nM_calc);
 		V   = dmatrix(1,DoF,1,nM_calc);
 
 		assemble_M ( M, DoF, nN, nE, scope.xyz, scope.rj, scope.L, scope.N1, scope.N2,
-				scope.Ax, scope.Jx,scope.Iy,scope.Iz, scope.p, scope.d, EMs, NMs, NMx, NMy, NMz,
-				lump, debug );
+				scope.Ax, scope.Jx,scope.Iy,scope.Iz, scope.p, scope.d, scope.EMs, scope.NMs, scope.NMx, scope.NMy, scope.NMz,
+				scope.lump, debug );
 
 #ifdef MATRIX_DEBUG
 		save_dmatrix ( "Mf", M, 1,DoF, 1,DoF, 0, "w" ); /* free mass matrix */
@@ -632,82 +598,82 @@ For compilation/installation, see README.txt.
 		}
 
 		if ( anlyz ) {	/* subspace or stodola methods */
-			if( Mmethod == 1 )
-				subspace( K, M, DoF, nM_calc, f, V, tol,shift,&iter,&ok, verbose );
-			if( Mmethod == 2 )
-				stodola ( K, M, DoF, nM_calc, f, V, tol,shift,&iter,&ok, verbose );
+			if( scope.Mmethod == 1 )
+				subspace( K, M, DoF, nM_calc, f, V, scope.tol,scope.shift,&iter,&ok, verbose );
+			if( scope.Mmethod == 2 )
+				stodola ( K, M, DoF, nM_calc, f, V, scope.tol,scope.shift,&iter,&ok, verbose );
 
 			for (j=1; j<=nM_calc; j++) f[j] = sqrt(f[j])/(2.0*PI);
 
-			write_modal_results ( fp, nI, DoF, M,f,V,
-					total_mass, struct_mass,
-					iter, scope.sumR, nM, shift, lump, tol, ok, frame );
+			write_modal_results ( fp, scope.nI, DoF, M,f,V,
+					scope.total_mass, scope.struct_mass,
+					iter, scope.sumR, scope.nM, scope.shift, scope.lump, scope.tol, ok, frame );
 		}
 	}
 
 	fprintf(fp,"\n");
 	fclose (fp);
 
-	if ( nM > 0 && anlyz ) {	/* write modal analysis results */
+	if ( scope.nM > 0 && anlyz ) {	/* write modal analysis results */
 		modal_mesh ( IN_file, meshpath, modepath, plotpath, title,
-				DoF, nM, scope.xyz, scope.L, scope.N1, scope.N2, scope.p,
-				M, f, V, exagg_modal, anlyz, frame, args );
+				DoF, scope.nM, scope.xyz, scope.L, scope.N1, scope.N2, scope.p,
+				M, f, V, scope.exagg_modal, anlyz, frame, args );
 
-		animate ( IN_file, meshpath, modepath, plotpath, title,anim,
-				DoF, nM, scope.xyz, scope.L, scope.p, scope.N1, scope.N2, f,
-				V, exagg_modal, pan, scale, frame, args );
+		animate ( IN_file, meshpath, modepath, plotpath, title,scope.anim,
+				DoF, scope.nM, scope.xyz, scope.L, scope.p, scope.N1, scope.N2, f,
+				V, scope.exagg_modal, scope.pan, scale, frame, args );
 	}
 
-	if ( nC > 0 ) {		/* matrix condensation of stiffness and mass */
+	if ( scope.nC > 0 ) {		/* matrix condensation of stiffness and mass */
 
 		if ( verbose ) fprintf(stdout,"\n Matrix Condensation ...\n");
 
-		if(Cdof > nM && Cmethod == 3){
+		if(scope.Cdof > scope.nM && scope.Cmethod == 3){
 			fprintf(stderr,"  Cdof > nM ... Cdof = %d  nM = %d \n",
-				 Cdof, nM );
+				 scope.Cdof, scope.nM );
 			fprintf(stderr,"  The number of condensed degrees of freedom");
 			fprintf(stderr," may not exceed the number of computed modes");
 			fprintf(stderr," when using dynamic condensation.\n");
 			exit(94);
 		}
 
-		Kc = dmatrix(1,Cdof,1,Cdof);
-		Mc = dmatrix(1,Cdof,1,Cdof);
+		Kc = dmatrix(1,scope.Cdof,1,scope.Cdof);
+		Mc = dmatrix(1,scope.Cdof,1,scope.Cdof);
 
-		if ( m[1] > 0 && nM > 0 )	Cfreq = f[m[1]];
+		if ( scope.m[1] > 0 && scope.nM > 0 )	Cfreq = f[scope.m[1]];
 
-		if ( Cmethod == 1 && anlyz) {	/* static condensation only */
-			static_condensation(K, DoF, c, Cdof, Kc, 0 );
+		if ( scope.Cmethod == 1 && anlyz) {	/* static condensation only */
+			static_condensation(K, DoF, scope.c, scope.Cdof, Kc, 0 );
 			if ( verbose )
 				fprintf(stdout,"   static condensation of K complete\n");
 		}
-		if ( Cmethod == 2 && anlyz ) {  /*  dynamic condensation  */
-			paz_condensation(M, K, DoF, c, Cdof, Mc,Kc, Cfreq, 0 );
+		if ( scope.Cmethod == 2 && anlyz ) {  /*  dynamic condensation  */
+			paz_condensation(M, K, DoF, scope.c, scope.Cdof, Mc,Kc, Cfreq, 0 );
 			if ( verbose ) {
 				fprintf(stdout,"   Paz condensation of K and M complete");
 				fprintf(stdout," ... dynamics matched at %f Hz.\n", Cfreq );
 			}
 		}
-		if ( Cmethod == 3 && nM > 0 && anlyz ) {
-			modal_condensation(M,K, DoF, scope.r, c, Cdof, Mc,Kc, V,f, m, 0 );
+		if ( scope.Cmethod == 3 && scope.nM > 0 && anlyz ) {
+			modal_condensation(M,K, DoF, scope.r, scope.c, scope.Cdof, Mc,Kc, V,f, scope.m, 0 );
 			if ( verbose )
 				fprintf(stdout,"   modal condensation of K and M complete\n");
 		}
-		save_dmatrix("Kc", Kc, 1,Cdof, 1,Cdof, 0, "w" );
-		save_dmatrix("Mc", Mc, 1,Cdof, 1,Cdof, 0, "w" );
+		save_dmatrix("Kc", Kc, 1,scope.Cdof, 1,scope.Cdof, 0, "w" );
+		save_dmatrix("Mc", Mc, 1,scope.Cdof, 1,scope.Cdof, 0, "w" );
 
-		free_dmatrix(Kc, 1,Cdof,1,Cdof );
-		free_dmatrix(Mc, 1,Cdof,1,Cdof );
+		free_dmatrix(Kc, 1,scope.Cdof,1,scope.Cdof );
+		free_dmatrix(Mc, 1,scope.Cdof,1,scope.Cdof );
 	}
 
 	/* deallocate memory used for each frame analysis variable */
-	deallocate ( nN, nE, nL, scope.nF, scope.nU, scope.nW, scope.nP, scope.nT, DoF, nM,
+	deallocate ( nN, nE, nL, scope.nF, scope.nU, scope.nW, scope.nP, scope.nT, DoF, scope.nM,
 			scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2, scope.q,scope.r,
 			scope.Ax, scope.Asy, scope.Asz, scope.Jx, scope.Iy, scope.Iz, scope.E, scope.G, scope.p,
 			scope.U,scope.W,scope.P,scope.T, scope.Dp, scope.F_mech, scope.F_temp,
 			scope.eqF_mech, scope.eqF_temp, scope.F, dF,
 			K, scope.Q, D, dD, R, dR,
-			scope.d,EMs,NMs,NMx,NMy,NMz, M,f,V, c, m,
+			scope.d,scope.EMs,scope.NMs,scope.NMx,scope.NMy,scope.NMz, M,f,V, scope.c, scope.m,
 			pkNx, pkVy, pkVz, pkTx, pkMy, pkMz,
 			pkDx, pkDy, pkDz, pkRx, pkSy, pkSz
 	);

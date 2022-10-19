@@ -1676,20 +1676,17 @@ void read_and_assemble_loads (
 void read_mass_data (
 		FILE *fp,
 		char *OUT_file,
-		int nN, int nE, int *nI, int *nX,
-		float *d, float *EMs,
-		float *NMs, float *NMx, float *NMy, float *NMz,
-		double *L, float *Ax,
-		double *total_mass, double *struct_mass,
-		int *nM, int *Mmethod,
-		int *lump,
-		double *tol,
-		double *shift,
-		double *exagg_modal,
 		char modepath[],
-		int anim[], float *pan,
-		RuntimeArgs args
+		RuntimeArgs args,
+		InputScope *scope
 ){
+	// Aliases
+	const int nN = scope->nN;
+	const int nE = scope->nE;
+	const float *Ax = scope->Ax;
+	const double *L = scope->L;
+	const float *d = scope->d;
+
 /*	double	ms = 0.0; */
 	int	i,j, jnt, m, b, nA;
 	int	full_len=0, len=0;
@@ -1699,30 +1696,42 @@ void read_mass_data (
 	char	mode_file[96] = "EMPTY_MODE";
 	char	errMsg[MAXL];
 
-	*total_mass = *struct_mass = 0.0;
+	// Initializations
+	scope->EMs =  vector(1,nE);	/* lumped mass for each frame element	*/
+	scope->NMs =  vector(1,nN);	/* node mass for each node		*/
+	scope->NMx =  vector(1,nN);	/* node inertia about global X axis	*/
+	scope->NMy =  vector(1,nN);	/* node inertia about global Y axis	*/
+	scope->NMz =  vector(1,nN);	/* node inertia about global Z axis	*/
+	scope->lump = 1;
+	scope->exagg_modal = 10;
+	scope->tol = 1.0e-9;
+	scope->shift = 0.0;
+	scope->pan = 1.0;
 
-	sfrv=fscanf ( fp, "%d", nM );
+	scope->total_mass = scope->struct_mass = 0.0;
+
+	sfrv=fscanf ( fp, "%d", &scope->nM );
 	if (sfrv != 1) sferr("nM value in mass data");
 
 	if ( args.verbose ) {
 		fprintf(stdout," number of dynamic modes ");
-		dots(stdout,28);	fprintf(stdout," nM = %3d\n", *nM);
+		dots(stdout,28);	fprintf(stdout," nM = %3d\n", scope->nM);
 	}
 
-	if ( *nM < 1 || sfrv != 1 ) {
-		*nM = 0;
+	if ( scope->nM < 1 || sfrv != 1 ) {
+		scope->nM = 0;
 		return;
 	}
 
-	sfrv=fscanf( fp, "%d", Mmethod );
+	sfrv=fscanf( fp, "%d", &scope->Mmethod );
 	if (sfrv != 1) sferr("Mmethod value in mass data");
-	if (args.overrides.modal != -1) *Mmethod = args.overrides.modal;
+	if (args.overrides.modal != -1) scope->Mmethod = args.overrides.modal;
 
 	if ( args.verbose ) {
 		fprintf(stdout," modal analysis method ");
-		dots(stdout,30);	fprintf(stdout," %3d ",*Mmethod);
-		if ( *Mmethod == 1 ) fprintf(stdout," (Subspace-Jacobi)\n");
-		if ( *Mmethod == 2 ) fprintf(stdout," (Stodola)\n");
+		dots(stdout,30);	fprintf(stdout," %3d ",scope->Mmethod);
+		if ( scope->Mmethod == 1 ) fprintf(stdout," (Subspace-Jacobi)\n");
+		if ( scope->Mmethod == 2 ) fprintf(stdout," (Stodola)\n");
 	}
 
 
@@ -1737,70 +1746,70 @@ void read_mass_data (
 	fprintf(mf,"%% element\tAx\t\tlength\t\tdensity\t\tmass \n");
 #endif
 
-	sfrv=fscanf( fp, "%d", lump );
+	sfrv=fscanf( fp, "%d", &scope->lump );
 	if (sfrv != 1) sferr("lump value in mass data");
-	sfrv=fscanf( fp, "%lf", tol );
+	sfrv=fscanf( fp, "%lf", &scope->tol );
 	if (sfrv != 1) sferr("tol value in mass data");
-	sfrv=fscanf( fp, "%lf", shift );
+	sfrv=fscanf( fp, "%lf", &scope->shift );
 	if (sfrv != 1) sferr("shift value in mass data");
-	sfrv=fscanf( fp, "%lf", exagg_modal );
+	sfrv=fscanf( fp, "%lf", &scope->exagg_modal );
 	if (sfrv != 1) sferr("exagg_modal value in mass data");
 
-	if (args.overrides.lump != -1) *lump = args.overrides.lump;
-	if (args.overrides.tol != -1.0 ) *tol  = args.overrides.tol;
-	if (args.overrides.shift != -1.0 ) *shift = args.overrides.shift;
+	if (args.overrides.lump != -1) scope->lump = args.overrides.lump;
+	if (args.overrides.tol != -1.0 ) scope->tol  = args.overrides.tol;
+	if (args.overrides.shift != -1.0 ) scope->shift = args.overrides.shift;
 
 	/* number of nodes with extra inertias */
-	sfrv=fscanf(fp,"%d", nI );
+	sfrv=fscanf(fp,"%d", &scope->nI );
 	if (sfrv != 1) sferr("nI value in mass data");
 	if ( args.verbose ) {
 		fprintf(stdout," number of nodes with extra lumped inertia ");
-		dots(stdout,10);	fprintf(stdout," nI = %3d\n",*nI);
+		dots(stdout,10);	fprintf(stdout," nI = %3d\n",scope->nI);
 	}
-	for (j=1; j <= *nI; j++) {
+	for (j=1; j <= scope->nI; j++) {
 		sfrv=fscanf(fp, "%d", &jnt );
 		if (sfrv != 1) sferr("node value in extra node mass data");
 		if ( jnt < 1 || jnt > nN ) {
 	    		sprintf(errMsg,"\n  error in node mass data: node number out of range    Node : %d  \n   Perhaps you did not specify %d extra masses \n   or perhaps the Input Data file is missing expected data.\n",
-			jnt, *nI );
+			jnt, scope->nI );
 			errorMsg(errMsg);
 	    		exit(86);
 		}
 		sfrv=fscanf(fp, "%f %f %f %f",
-			&NMs[jnt], &NMx[jnt], &NMy[jnt], &NMz[jnt] );
+			&scope->NMs[jnt], &scope->NMx[jnt], &scope->NMy[jnt], &scope->NMz[jnt] );
 		if (sfrv != 4) sferr("node inertia in extra mass data");
-		*total_mass += NMs[jnt];
+		scope->total_mass += scope->NMs[jnt];
 
-		if ( NMs[jnt]==0 && NMx[jnt]==0 && NMy[jnt]==0 && NMz[jnt]==0 )
+		if ( scope->NMs[jnt]==0 && scope->NMx[jnt]==0 && scope->NMy[jnt]==0 && scope->NMz[jnt]==0 )
 	    	fprintf(stderr,"\n  Warning: All extra node inertia at node %d  are zero\n", jnt );
 	}
 
 	/* number of frame elements with extra beam mass */
-	sfrv=fscanf(fp,"%d", nX );
+	sfrv=fscanf(fp,"%d", &scope->nX );
 	if (sfrv != 1) sferr("nX value in mass data");
 	if ( args.verbose ) {
 		fprintf(stdout," number of frame elements with extra mass ");
-		dots(stdout,11);	fprintf(stdout," nX = %3d\n",*nX);
+		dots(stdout,11);	fprintf(stdout," nX = %3d\n",scope->nX);
 		if (sfrv != 1) sferr("element value in extra element mass data");
 	}
-	for (m=1; m <= *nX; m++) {
+	for (m=1; m <= scope->nX; m++) {
 		sfrv=fscanf(fp, "%d", &b );
 		if (sfrv != 1) sferr("element number in extra element mass data");
 		if ( b < 1 || b > nE ) {
 			sprintf(errMsg,"\n  error in element mass data: element number out of range   Element: %d  \n   Perhaps you did not specify %d extra masses \n   or perhaps the Input Data file is missing expected data.\n",
-			b, *nX );
+			b, scope->nX );
 			errorMsg(errMsg);
 	    		exit(87);
 		}
-		sfrv=fscanf(fp, "%f", &EMs[b] );
+		sfrv=fscanf(fp, "%f", &scope->EMs[b] );
 		if (sfrv != 1) sferr("extra element mass value in mass data");
 	}
 
 
 	/* calculate the total mass and the structural mass */
 	for (b=1; b <= nE; b++) {
-		*total_mass  += d[b]*Ax[b]*L[b] + EMs[b];
-		*struct_mass += d[b]*Ax[b]*L[b];
+		scope->total_mass  += d[b]*Ax[b]*L[b] + scope->EMs[b];
+		scope->struct_mass += d[b]*Ax[b]*L[b];
 #ifdef MASSDATA_DEBUG
 		fprintf(mf," %4d\t\t%12.5e\t%12.5e\t%12.5e\t%12.5e \n",
 		 b, Ax[b], L[b], d[b], d[b]*Ax[b]*L[b] );
@@ -1812,8 +1821,8 @@ void read_mass_data (
 #endif
 
 	for (m=1;m<=nE;m++) {			/* check inertia data	*/
-	    if ( d[m] < 0.0 || EMs[m] < 0.0 || d[m]+EMs[m] <= 0.0 ) {
-		sprintf(errMsg,"\n  error: Non-positive mass or density\n  d[%d]= %f  EMs[%d]= %f\n",m,d[m],m,EMs[m]);
+	    if ( d[m] < 0.0 || scope->EMs[m] < 0.0 || d[m]+scope->EMs[m] <= 0.0 ) {
+		sprintf(errMsg,"\n  error: Non-positive mass or density\n  d[%d]= %f  EMs[%d]= %f\n",m,d[m],m,scope->EMs[m]);
 		errorMsg(errMsg);
 		exit(88);
 	    }
@@ -1823,9 +1832,9 @@ void read_mass_data (
 
 	if ( args.verbose ) {
 		fprintf(stdout," structural mass ");
-		dots(stdout,36);	fprintf(stdout,"  %12.4e\n",*struct_mass);
+		dots(stdout,36);	fprintf(stdout,"  %12.4e\n",scope->struct_mass);
 		fprintf(stdout," total mass ");
-		dots(stdout,41);	fprintf(stdout,"  %12.4e\n",*total_mass);
+		dots(stdout,41);	fprintf(stdout,"  %12.4e\n",scope->total_mass);
 	}
 	sfrv=fscanf ( fp, "%d", &nA );
 	if (sfrv != 1) sferr("nA value in mode animation data");
@@ -1835,19 +1844,19 @@ void read_mass_data (
 	}
 	if (nA > 20)
 	  fprintf(stderr," nA = %d, only 100 or fewer modes may be animated\n", nA );
-	for ( m = 0; m < 20; m++ )	anim[m] = 0;
+	for ( m = 0; m < 20; m++ )	scope->anim[m] = 0;
 	for ( m = 1; m <= nA; m++ ) {
-		sfrv=fscanf ( fp, "%d", &anim[m] );
+		sfrv=fscanf ( fp, "%d", &scope->anim[m] );
 		if (sfrv != 1) sferr("mode number in mode animation data");
 	}
 
-	sfrv=fscanf ( fp, "%f", pan );
+	sfrv=fscanf ( fp, "%f", &scope->pan );
 	if (sfrv != 1) sferr("pan value in mode animation data");
-	if (args.overrides.pan != -1.0) *pan = args.overrides.pan;
+	if (args.overrides.pan != -1.0) scope->pan = args.overrides.pan;
 
 	if ( args.verbose ) {
 		fprintf(stdout," pan rate ");
-		dots(stdout,43); fprintf(stdout," %8.3f\n", *pan);
+		dots(stdout,43); fprintf(stdout," %8.3f\n", scope->pan);
 	}
 
 	strcpy(base_file,OUT_file);
@@ -1878,45 +1887,50 @@ void read_mass_data (
  */
 void read_condensation_data (
 		FILE *fp,
-		int nN, int nM,
-		int *nC, int *Cdof,
-		int *Cmethod, int *c, int *m,
 		int verbose,
-		RuntimeArgs args
+		RuntimeArgs args,
+		InputScope *scope
 ){
 	int	i,j,k,  **cm;
 	int	sfrv=0;		/* *scanf return value */
 	char	errMsg[MAXL];
 
-	*Cmethod = *nC = *Cdof = 0;
+	const int nN = scope->nN;
+	const int nM = scope->nM;
+	const int DoF = scope->DoF;
 
-	if ( (sfrv=fscanf ( fp, "%d", Cmethod )) != 1 )   {
-		*Cmethod = *nC = *Cdof = 0;
+	scope->Cmethod = scope->nC = scope->Cdof = 0;
+
+	scope->c = ivector(1, DoF); 	/* vector of condensed degrees of freedom */
+	scope->m = ivector(1, DoF); 	/* vector of condensed mode numbers	*/
+
+	if ( (sfrv=fscanf ( fp, "%d", &scope->Cmethod )) != 1 )   {
+		scope->Cmethod = scope->nC = scope->Cdof = 0;
 		if ( verbose )
 			fprintf(stdout," missing matrix condensation data \n");
 		return;
 	}
 
-	if (args.overrides.condense != -1) *Cmethod = args.overrides.condense;
+	if (args.overrides.condense != -1) scope->Cmethod = args.overrides.condense;
 
-	if ( *Cmethod <= 0 )  {
+	if ( scope->Cmethod <= 0 )  {
 		if ( verbose )
-			fprintf(stdout," Cmethod = %d : no matrix condensation \n", *Cmethod );
-		*Cmethod = *nC = *Cdof = 0;
+			fprintf(stdout," Cmethod = %d : no matrix condensation \n", scope->Cmethod );
+		scope->Cmethod = scope->nC = scope->Cdof = 0;
 		return;
 	}
 
-	if ( *Cmethod > 3 ) *Cmethod = 1;	/* default */
+	if ( scope->Cmethod > 3 ) scope->Cmethod = 1;	/* default */
 	if ( verbose ) {
 		fprintf(stdout," condensation method ");
-		dots(stdout,32);	fprintf(stdout," %d ", *Cmethod );
-		if ( *Cmethod == 1 )	fprintf(stdout," (static only) \n");
-		if ( *Cmethod == 2 )	fprintf(stdout," (Guyan) \n");
-		if ( *Cmethod == 3 )	fprintf(stdout," (dynamic) \n");
+		dots(stdout,32); fprintf(stdout," %d ", scope->Cmethod );
+		if ( scope->Cmethod == 1 ) fprintf(stdout," (static only) \n");
+		if ( scope->Cmethod == 2 ) fprintf(stdout," (Guyan) \n");
+		if ( scope->Cmethod == 3 ) fprintf(stdout," (dynamic) \n");
 	}
 
-	if ( (sfrv=fscanf ( fp, "%d", nC )) != 1 )  {
-		*Cmethod = *nC = *Cdof = 0;
+	if ( (sfrv=fscanf ( fp, "%d", &scope->nC )) != 1 )  {
+		scope->Cmethod = scope->nC = scope->Cdof = 0;
 		if ( verbose )
 			fprintf(stdout," missing matrix condensation data \n");
 		return;
@@ -1924,19 +1938,19 @@ void read_condensation_data (
 
 	if ( verbose ) {
 		fprintf(stdout," number of nodes with condensed DoF's ");
-		dots(stdout,15);	fprintf(stdout," nC = %3d\n", *nC );
+		dots(stdout,15);	fprintf(stdout," nC = %3d\n", scope->nC );
 	}
 
-	if ( (*nC) > nN ) {
+	if ( scope->nC > nN ) {
 	  sprintf(errMsg,"\n  error in matrix condensation data: \n error: nC > nN ... nC=%d; nN=%d;\n The number of nodes with condensed DoF's may not exceed the total number of nodes.\n",
-	  *nC, nN );
+	  scope->nC, nN );
 	  errorMsg(errMsg);
 	  exit(90);
 	}
 
-	cm = imatrix( 1, *nC, 1,7 );
+	cm = imatrix( 1, scope->nC, 1,7 );
 
-	for ( i=1; i <= *nC; i++) {
+	for ( i=1; i <= scope->nC; i++) {
 	 sfrv=fscanf( fp, "%d %d %d %d %d %d %d",
 	 &cm[i][1],
 	 &cm[i][2], &cm[i][3], &cm[i][4], &cm[i][5], &cm[i][6], &cm[i][7]);
@@ -1948,34 +1962,34 @@ void read_condensation_data (
 	 }
 	}
 
-	for (i=1; i <= *nC; i++)  for (j=2; j<=7; j++)  if (cm[i][j]) (*Cdof)++;
+	for (i=1; i <= scope->nC; i++)  for (j=2; j<=7; j++)  if (cm[i][j]) (scope->Cdof)++;
 
 	k=1;
-	for (i=1; i <= *nC; i++) {
+	for (i=1; i <= scope->nC; i++) {
 		for (j=2; j<=7; j++) {
 			if (cm[i][j]) {
-				c[k] = 6*(cm[i][1]-1) + j-1;
+				scope->c[k] = 6*(cm[i][1]-1) + j-1;
 				++k;
 			}
 		}
 	}
 
-	for (i=1; i<= *Cdof; i++) {
-	 sfrv=fscanf( fp, "%d", &m[i] );
-	 if (sfrv != 1 && *Cmethod == 3) {
+	for (i=1; i<= scope->Cdof; i++) {
+	 sfrv=fscanf( fp, "%d", &scope->m[i] );
+	 if (sfrv != 1 && scope->Cmethod == 3) {
 		sferr("mode number in condensation data");
-		sprintf(errMsg,"condensed mode %d = %d", i, m[i] );
+		sprintf(errMsg,"condensed mode %d = %d", i, scope->m[i] );
 		errorMsg(errMsg);
 	 }
-	 if ( (m[i] < 0 || m[i] > nM) && *Cmethod == 3 ) {
+	 if ( (scope->m[i] < 0 || scope->m[i] > nM) && scope->Cmethod == 3 ) {
 	  sprintf(errMsg,"\n  error in matrix condensation data: \n  m[%d] = %d \n The condensed mode number must be between   1 and %d (modes).\n",
-	  i, m[i], nM );
+	  i, scope->m[i], nM );
 	  errorMsg(errMsg);
 	  exit(92);
 	 }
 	}
 
-	free_imatrix(cm,1, *nC, 1,7);
+	free_imatrix(cm,1, scope->nC, 1,7);
 	return;
 }
 

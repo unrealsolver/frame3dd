@@ -168,25 +168,9 @@ void read_and_assemble_loads(
 void read_mass_data(
 	FILE *fp,	/**< input data file pointer			*/
 	char *OUT_file,	/**< input output data file name 		*/
-	int nN, int nE,	/**< number of nodes, number of frame elements */
-	int *nI,	/**< number of nodes with extra inertia	*/
-	int *nX,	/**< number of elements with extra mass		*/
-	float *d, float *EMs, /**< density, extra frame element mass	*/
-	float *NMs, float *NMx, float *NMy, float *NMz, /**< node inertia*/
-	double *L,	/**< length of each frame element		*/
-	float *Ax, 	/**< cross section area of each frame element	*/
-	double *total_mass,	/**< total mass of structure and extra mass */
-	double *struct_mass, 	/**< mass of structural elements	*/
-	int *nM,	/**< number of modes to find			*/
-	int *Mmethod, 	/**< modal analysis method			*/
-	int *lump,	/**< 1: use lumped mass matrix, 0: consistent mass */
-	double *tol,	/**< convergence tolerance for mode shapes	*/
-	double *shift,	/**< frequency shift for unrestrained frames	*/
-	double *exagg_modal, /**< exaggerate modal displacements	*/
 	char modepath[], /**< filename for mode shape data for plotting	*/
-	int *anim,	/**< list of modes to be graphically animated	*/
-	float *pan,	/**< 1: pan viewpoint during animation, 0: don't */
-	RuntimeArgs args /**< Command line options		*/
+	RuntimeArgs args, /**< Command line options		*/
+	InputScope *scope /**< Input data combined */
 );
 
 
@@ -195,14 +179,9 @@ void read_mass_data(
  */
 void read_condensation_data(
 	FILE *fp,	/**< input data file pointer			*/
-	int nN, int nM, 	/**< number of nodes, number of modes	*/
-	int *nC,	/**< number of nodes with condensed DoF's	*/
-	int *Cdof,	/**< list of DoF's retained in condensed model	*/
-	int *Cmethod,	/**< matrix conden'n method, static, Guyan, dynamic*/
-	int *c,		/**< list of retained degrees of freedom	*/
-	int *m,		/**< list of retained modes in dynamic condensation */
 	int verbose,	/**< 1: copious output to screen, 0: none	*/
-	RuntimeArgs args /**< Command line options		*/
+	RuntimeArgs args, /**< Command line options		*/
+	InputScope *scope /**< Input data combined */
 );
 
 
