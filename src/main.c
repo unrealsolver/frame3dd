@@ -82,10 +82,6 @@ For compilation/installation, see README.txt.
 	vec3	*xyz;		// X,Y,Z node coordinates (global)
 
 	float	*rj = NULL,	// node size radius, for finite sizes
-		*Ax,*Asy, *Asz,	// cross section areas, incl. shear
-		*Jx,*Iy,*Iz,	// section inertias
-		*E=NULL, *G=NULL,// elastic modulus and shear moduli
-		*p=NULL,	// roll of each member, radians
 		***U=NULL,	// uniform distributed member loads
 		***W=NULL,	// trapizoidal distributed member loads
 		***P=NULL,	// member concentrated loads
@@ -117,8 +113,6 @@ For compilation/installation, see README.txt.
 		*dD = NULL,	// incremental displacement vector
 		//dDdD = 0.0,	// dD' * dD
 		*dF = NULL,	// equilibrium error in nonlinear anlys
-		*L  = NULL,	// node-to-node length of each element
-		*Le = NULL,	// effcve lngth, accounts for node size
 		**Q = NULL,	// local member node end-forces
 		tol = 1.0e-9,	// tolerance for modal convergence
 		shift = 0.0,	// shift-factor for rigid-body-modes
@@ -142,7 +136,6 @@ For compilation/installation, see README.txt.
 		nE=0,		// number of frame Elements
 		nL=0, lc=0,	// number of Load cases
 		DoF=0, i, j,	// number of Degrees of Freedom
-		nR=0,		// number of restrained nodes
 		nD[_NL_],	// number of prescribed nodal displ'nts
 		nF[_NL_],	// number of loaded nodes
 		nU[_NL_],	// number of members w/ unifm dist loads
@@ -152,11 +145,9 @@ For compilation/installation, see README.txt.
 		nI=0,		// number of nodes w/ extra inertia
 		nX=0,		// number of elemts w/ extra mass
 		nC=0,		// number of condensed nodes
-		*N1, *N2,	// begin and end node numbers
 		shear=0,	// indicates shear deformation
 		geom=0,		// indicates  geometric nonlinearity
 		anlyz=1,	// 1: stiffness analysis, 0: data check
-		*q=NULL,*r=NULL,sumR,	// reaction data, total no. of reactions
 		nM=0,		// number of desired modes
 		Mmethod,	// 1: Subspace Jacobi, 2: Stodola
 		nM_calc,	// number of modes to calculate
@@ -174,6 +165,8 @@ For compilation/installation, see README.txt.
 
 	int	sfrv=0;		// *scanf return value for err checking
 	char	extension[16];	// Input Data file name extension
+
+	InputScope scope; // All input data combined; Compatibility adaptor
 
 	Frame *frame = (Frame *) malloc(sizeof(Frame));
 	LoadCases *load_cases = (LoadCases *) malloc(sizeof(LoadCases));
@@ -240,13 +233,10 @@ For compilation/installation, see README.txt.
 		fprintf(stdout,"\n");
 	}
 
-	sfrv=fscanf(fp, "%d", &nN );		/* number of nodes	*/
-	if (sfrv != 1)	sferr("nN value for number of nodes");
-	if ( verbose ) {	/* display nN */
-		fprintf(stdout," number of nodes ");
-		dots(stdout,36); fprintf(stdout," nN =%4d ",nN);
-	}
-
+	/* Start actually parsing file */
+	// Read nN
+	read_node_number(fp, &nN, verbose);
+	scope.nN = nN;
 					/* allocate memory for node data ... */
 	rj  =  vector(1,nN);		/* rigid radius around each node */
 	xyz = (vec3 *) calloc(nN + 1, sizeof(vec3));	/* node coordinates */
@@ -254,23 +244,19 @@ For compilation/installation, see README.txt.
 	// FIXME deallocte
 	frame->nodes.data = (Node *) calloc(nN, sizeof(Node));
 
-	read_node_data(fp, xyz, rj, frame);
+	read_node_data(fp, frame, &scope);
 	if ( verbose )	printf(" ... complete\n");
 
 	DoF = 6*nN;		/* total number of degrees of freedom	*/
+	scope.DoF = 6 * nN;
 
-	q   = ivector(1,DoF);	/* allocate memory for reaction data ... */
-	r   = ivector(1,DoF);	/* allocate memory for reaction data ... */
 	// TODO read to Frame
-	read_reaction_data ( fp, DoF, nN, &nR, q, r, &sumR, verbose, frame );
+	read_reaction_data (fp, verbose, frame, &scope);
 	if ( verbose )	fprintf(stdout," ... complete\n");
 
-	sfrv=fscanf(fp, "%d", &nE );	/* number of frame elements	*/
-	if (sfrv != 1)	sferr("nE value for number of frame elements");
-	if ( verbose ) {	/* display nE */
-		fprintf(stdout," number of frame elements");
-		dots(stdout,28);	fprintf(stdout," nE =%4d ",nE);
-	}
+	read_element_number(fp, &nE, verbose);
+	scope.nE = nE;
+
 	if ( nN > nE + 1) {	/* not enough elements */
 		fprintf(stderr,"\n  warning: %d nodes and %d members...", nN, nE );
 		fprintf(stderr," not enough elements to connect all nodes.\n");
@@ -280,27 +266,7 @@ For compilation/installation, see README.txt.
 	// FIXME deallocte
 	frame->edges.data = (Edge *) calloc(nE, sizeof(Edge));
 
-				/* allocate memory for frame elements ... */
-	L   = dvector(1,nE);	/* length of each element		*/
-	Le  = dvector(1,nE);	/* effective length of each element	*/
-
-	N1  = ivector(1,nE);	/* node #1 of each element		*/
-	N2  = ivector(1,nE);	/* node #2 of each element		*/
-
-	Ax  =  vector(1,nE);	/* cross section area of each element	*/
-	Asy =  vector(1,nE);	/* shear area in local y direction 	*/
-	Asz =  vector(1,nE);	/* shear area in local z direction	*/
-	Jx  =  vector(1,nE);	/* torsional moment of inertia 		*/
-	Iy  =  vector(1,nE);	/* bending moment of inertia about y-axis */
-	Iz  =  vector(1,nE);	/* bending moment of inertia about z-axis */
-
-	E   =  vector(1,nE);	/* frame element Young's modulus	*/
-	G   =  vector(1,nE);	/* frame element shear modulus		*/
-	p   =  vector(1,nE);	/* element rotation angle about local x axis */
-	d   =  vector(1,nE);	/* element mass density			*/
-
-	read_frame_element_data( fp, xyz,rj, L, Le, N1, N2,
-					Ax, Asy, Asz, Jx, Iy, Iz, E, G, p, d, frame );
+	read_frame_element_data(fp, frame, &scope);
 	if ( verbose) 	fprintf(stdout," ... complete\n");
 
 	read_run_data ( fp, OUT_file, &shear, &geom,
@@ -389,9 +355,9 @@ For compilation/installation, see README.txt.
 	pkSy = dmatrix(1,nL,1,nE);
 	pkSz = dmatrix(1,nL,1,nE);
 
-	read_and_assemble_loads( fp, DoF, xyz, L, Le, N1, N2,
-			Ax,Asy,Asz, Iy,Iz, E, G, p,
-			d, gX, gY, gZ, r, shear,
+	read_and_assemble_loads( fp, DoF, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+			scope.Ax,scope.Asy,scope.Asz, scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
+			scope.d, gX, gY, gZ, scope.r, shear,
 			nF, nU, nW, nP, nT, nD,
 			Q, F_temp, F_mech, F, U, W, P, T,
 			Dp, eqF_mech, eqF_temp, verbose, frame, load_cases );
@@ -402,8 +368,8 @@ For compilation/installation, see README.txt.
 	}
 
 	read_mass_data( fp, IN_file, nN, nE, &nI, &nX,
-			d, EMs, NMs, NMx, NMy, NMz,
-			L, Ax, &total_mass, &struct_mass, &nM,
+			scope.d, EMs, NMs, NMx, NMy, NMz,
+			scope.L, scope.Ax, &total_mass, &struct_mass, &nM,
 			&Mmethod, &lump, &tol, &shift,
 			&exagg_modal, modepath, anim, &pan,
 			args );
@@ -431,9 +397,9 @@ For compilation/installation, see README.txt.
 	}
 
 	write_input_data(
-		fp, title, nD, nR, nF, nU, nW, nP, nT,
-		p, d,
-		F_temp, F_mech, Dp, r, U, W, P, T,
+		fp, title, nD, scope.nR, nF, nU, nW, nP, nT,
+		scope.p, scope.d,
+		F_temp, F_mech, Dp, scope.r, U, W, P, T,
 		shear, anlyz, geom, frame, load_cases
 	);
 
@@ -463,8 +429,8 @@ For compilation/installation, see README.txt.
 
 			/*  elastic stiffness matrix  [K({D}^(i))], {D}^(0)={0} (i=0) */
 			assemble_K(
-				K, DoF, nE, xyz, rj, L, Le, N1, N2,
-				Ax, Asy, Asz, Jx,Iy,Iz, E, G, p,
+				K, DoF, nE, scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2,
+				scope.Ax, scope.Asy, scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
 				shear, geom, Q, debug
 			);
 
@@ -478,25 +444,26 @@ For compilation/installation, see README.txt.
 					fprintf(stdout," Linear Elastic Analysis ... Temperature Loads\n");
 
 				/*  solve {F_t} = [K({D=0})] * {D_t} */
-				solve_system(K,dD,F_temp[lc],dR,DoF,q,r,&ok,verbose,&rms_resid);
+				solve_system(K,dD,F_temp[lc],dR,DoF,scope.q,scope.r,&ok,verbose,&rms_resid);
 
 				/* increment {D_t} = {0} + {D_t} temp.-induced displ */
-				for (i=1; i<=DoF; i++)	if (q[i]) D[i] += dD[i];
+				for (i=1; i<=DoF; i++)	if (scope.q[i]) D[i] += dD[i];
 				/* increment {R_t} = {0} + {R_t} temp.-induced react */
-				for (i=1; i<=DoF; i++)	if (r[i]) R[i] += dR[i];
+				for (i=1; i<=DoF; i++)	if (scope.r[i]) R[i] += dR[i];
 
 				if (geom) {	/* assemble K = Ke + Kg */
 				 /* compute   {Q}={Q_t} ... temp.-induced forces     */
 					element_end_forces(
-						Q, nE, xyz, L, Le, N1,N2,
-						Ax, Asy,Asz, Jx,Iy,Iz, E,G, p,
+						Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+						scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
 						eqF_temp[lc], eqF_mech[lc], D, shear, geom,
 						&axial_strain_warning
 					);
 					/* assemble temp.-stressed stiffness [K({D_t})]     */
 					assemble_K(
-						K, DoF, nE, xyz, rj, L, Le, N1, N2,
-						Ax,Asy,Asz, Jx,Iy,Iz, E, G, p,
+						K, DoF, nE, scope.xyz, scope.rj,
+						scope.L, scope.Le, scope.N1, scope.N2,
+						scope.Ax,scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
 						shear,geom, Q, debug
 					);
 				}
@@ -510,18 +477,18 @@ For compilation/installation, see README.txt.
 				if ( verbose )
 					fprintf(stdout," Linear Elastic Analysis ... Mechanical Loads\n");
 				/* incremental displ at react'ns = prescribed displ */
-				for (i=1; i<=DoF; i++)	if (r[i]) dD[i] = Dp[lc][i];
+				for (i=1; i<=DoF; i++)	if (scope.r[i]) dD[i] = Dp[lc][i];
 
 				/*  solve {F_m} = [K({D_t})] * {D_m}	*/
-				solve_system(K,dD,F_mech[lc],dR,DoF,q,r,&ok,verbose,&rms_resid);
+				solve_system(K,dD,F_mech[lc],dR,DoF,scope.q,scope.r,&ok,verbose,&rms_resid);
 
 				/* combine {D} = {D_t} + {D_m}	*/
 				for (i=1; i<=DoF; i++) {
-					if (q[i])	D[i] += dD[i];
+					if (scope.q[i])	D[i] += dD[i];
 					else {		D[i]  = Dp[lc][i]; dD[i] = 0.0; }
 				}
 				/* combine {R} = {R_t} + {R_m} --- for linear systems */
-				for (i=1; i<=DoF; i++) if (r[i]) R[i] += dR[i];
+				for (i=1; i<=DoF; i++) if (scope.r[i]) R[i] += dR[i];
 			}
 
 
@@ -529,13 +496,13 @@ For compilation/installation, see README.txt.
 			for (i=1; i<=DoF; i++)	F[i] = F_temp[lc][i] + F_mech[lc][i];
 
 			/*  element forces {Q} for displacements {D}	*/
-			element_end_forces ( Q, nE, xyz, L, Le, N1,N2,
-					Ax, Asy,Asz, Jx,Iy,Iz, E,G, p,
+			element_end_forces ( Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+					scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
 					eqF_temp[lc], eqF_mech[lc], D, shear, geom,
 					&axial_strain_warning );
 
 			/*  check the equilibrium error	*/
-			error = equilibrium_error ( dF, F, K, D, DoF, q,r );
+			error = equilibrium_error ( dF, F, K, D, DoF, scope.q,scope.r );
 
 			if ( geom && verbose )
 				fprintf(stdout,"\n Non-Linear Elastic Analysis ...\n");
@@ -557,20 +524,20 @@ For compilation/installation, see README.txt.
 				++iter;
 
 				/*  assemble stiffness matrix [K({D}^(i))]	      */
-				assemble_K ( K, DoF, nE, xyz, rj, L, Le, N1, N2,
-					Ax,Asy,Asz, Jx,Iy,Iz, E, G, p,
+				assemble_K ( K, DoF, nE, scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2,
+					scope.Ax,scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
 					shear,geom, Q, debug );
 
 				/*  compute equilibrium error, {dF}, at iteration i   */
 				/*  {dF}^(i) = {F} - [K({D}^(i))]*{D}^(i)	      */
 				/*  convergence criteria = || {dF}^(i) ||  /  || F || */
-				error = equilibrium_error ( dF, F, K, D, DoF, q,r );
+				error = equilibrium_error ( dF, F, K, D, DoF, scope.q,scope.r );
 
 				/*  Powell-Symmetric-Broyden secant stiffness update  */
 				// PSB_update ( Ks, dF, dD, DoF );  /* not helpful?   */
 
 				/*  solve {dF}^(i) = [K({D}^(i))] * {dD}^(i)	      */
-				solve_system(K,dD,dF,dR,DoF,q,r,&ok,verbose,&rms_resid);
+				solve_system(K,dD,dF,dR,DoF,scope.q,scope.r,&ok,verbose,&rms_resid);
 
 				if ( ok < 0 ) {	/*  K is not positive definite	      */
 					fprintf(stderr,"   The stiffness matrix is not pos-def. \n");
@@ -580,11 +547,11 @@ For compilation/installation, see README.txt.
 				}
 
 				/*  increment {D}^(i+1) = {D}^(i) + {dD}^(i)	      */
-				for (i=1; i<=DoF; i++)	if ( q[i] )	D[i] += dD[i];
+				for (i=1; i<=DoF; i++)	if (scope.q[i])	D[i] += dD[i];
 
 				/*  element forces {Q} for displacements {D}^(i)      */
-				element_end_forces ( Q, nE, xyz, L, Le, N1,N2,
-					Ax, Asy,Asz, Jx,Iy,Iz, E,G, p,
+				element_end_forces ( Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+					scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
 					eqF_temp[lc], eqF_mech[lc], D, shear, geom,
 					&axial_strain_warning );
 
@@ -600,7 +567,7 @@ For compilation/installation, see README.txt.
 			/*   strain limit _and_ buckling failure ... */
 			if (axial_strain_warning > 0 && ExitCode == 181) ExitCode = 183;
 
-			if ( geom )	compute_reaction_forces( R,F,K, D, DoF, r );
+			if ( geom )	compute_reaction_forces( R,F,K, D, DoF, scope.r );
 
 			/*  dealocate Broyden secant stiffness matrix, Ks */
 			// if ( geom )	free_dmatrix(Ks, 1, DoF, 1, DoF );
@@ -613,17 +580,17 @@ For compilation/installation, see README.txt.
 
 			write_static_struct(lc_result, frame, D, Q);
 
-			write_static_results ( fp, lc, DoF, N1,N2,
-					F,D,R, r,Q, rms_resid, ok, args.axial_sign, frame, load_cases );
+			write_static_results ( fp, lc, DoF, scope.N1, scope.N2,
+					F,D,R, scope.r,Q, rms_resid, ok, args.axial_sign, frame, load_cases );
 
 			if ( filetype == 1 ) {		// .CSV format output
 				write_static_csv(OUT_file, title,
-				    lc, DoF, N1,N2, F,D,R, r,Q, error, ok, frame, load_cases );
+				    lc, DoF, scope.N1, scope.N2, F,D,R, scope.r,Q, error, ok, frame, load_cases );
 			}
 
 			if ( filetype == 2 ) {		// .m matlab format output
 				write_static_mfile (OUT_file, title, lc, DoF,
-						N1,N2, F,D,R, r,Q, error, ok, frame, load_cases);
+						scope.N1,scope.N2, F,D,R, scope.r,Q, error, ok, frame, load_cases);
 			}
 
 /*
@@ -634,16 +601,16 @@ For compilation/installation, see README.txt.
  * 			 " and re-run the analysis. \n");
  */
 
-			write_internal_forces ( OUT_file, fp, infcpath, lc, title, dx, xyz,
-						Q, L, N1, N2,
-						p,
-						d, gX[lc], gY[lc], gZ[lc],
+			write_internal_forces ( OUT_file, fp, infcpath, lc, title, dx, scope.xyz,
+						Q, scope.L, scope.N1, scope.N2,
+						scope.p,
+						scope.d, gX[lc], gY[lc], gZ[lc],
 						nU[lc],U[lc],nW[lc],W[lc],nP[lc],P[lc],
 						D, shear, error, frame, load_cases );
 
 			static_mesh ( IN_file, infcpath, meshpath, plotpath, title,
 						lc, DoF,
-						xyz, L, N1,N2, p, D,
+						scope.xyz, scope.L, scope.N1, scope.N2, scope.p, D,
 						exagg_static, anlyz,
 						dx, scale, load_cases, frame, args );
 
@@ -657,7 +624,7 @@ For compilation/installation, see README.txt.
 		static_mesh(
 			IN_file, infcpath, meshpath, plotpath, title,
 			lc, DoF,
-			xyz, L, N1,N2, p, D,
+			scope.xyz, scope.L, scope.N1, scope.N2, scope.p, D,
 			exagg_static, anlyz,
 			dx, scale, load_cases, frame, args
 		);
@@ -674,8 +641,8 @@ For compilation/installation, see README.txt.
 		f   = dvector(1,nM_calc);
 		V   = dmatrix(1,DoF,1,nM_calc);
 
-		assemble_M ( M, DoF, nN, nE, xyz, rj, L, N1,N2,
-				Ax, Jx,Iy,Iz, p, d, EMs, NMs, NMx, NMy, NMz,
+		assemble_M ( M, DoF, nN, nE, scope.xyz, scope.rj, scope.L, scope.N1, scope.N2,
+				scope.Ax, scope.Jx,scope.Iy,scope.Iz, scope.p, scope.d, EMs, NMs, NMx, NMy, NMz,
 				lump, debug );
 
 #ifdef MATRIX_DEBUG
@@ -683,13 +650,13 @@ For compilation/installation, see README.txt.
 #endif
 
 		for (j=1; j<=DoF; j++) { /*  compute traceK and traceM */
-			if ( !r[j] ) {
+			if ( !scope.r[j] ) {
 				traceK += K[j][j];
 				traceM += M[j][j];
 			}
 		}
 		for (i=1; i<=DoF; i++) { /*  modify K and M for reactions    */
-			if ( r[i] ) {	/* apply reactions to upper triangle */
+			if ( scope.r[i] ) {	/* apply reactions to upper triangle */
 				K[i][i] = traceK * 1e4;
 				M[i][i] = traceM;
 				for (j=i+1; j<=DoF; j++)
@@ -712,7 +679,7 @@ For compilation/installation, see README.txt.
 
 			write_modal_results ( fp, nI, DoF, M,f,V,
 					total_mass, struct_mass,
-					iter, sumR, nM, shift, lump, tol, ok, frame );
+					iter, scope.sumR, nM, shift, lump, tol, ok, frame );
 		}
 	}
 
@@ -721,11 +688,11 @@ For compilation/installation, see README.txt.
 
 	if ( nM > 0 && anlyz ) {	/* write modal analysis results */
 		modal_mesh ( IN_file, meshpath, modepath, plotpath, title,
-				DoF, nM, xyz, L, N1,N2, p,
+				DoF, nM, scope.xyz, scope.L, scope.N1, scope.N2, scope.p,
 				M, f, V, exagg_modal, anlyz, frame, args );
 
 		animate ( IN_file, meshpath, modepath, plotpath, title,anim,
-				DoF, nM, xyz, L, p, N1,N2, f,
+				DoF, nM, scope.xyz, scope.L, scope.p, scope.N1, scope.N2, f,
 				V, exagg_modal, pan, scale, frame, args );
 	}
 
@@ -760,7 +727,7 @@ For compilation/installation, see README.txt.
 			}
 		}
 		if ( Cmethod == 3 && nM > 0 && anlyz ) {
-			modal_condensation(M,K, DoF, r, c, Cdof, Mc,Kc, V,f, m, 0 );
+			modal_condensation(M,K, DoF, scope.r, c, Cdof, Mc,Kc, V,f, m, 0 );
 			if ( verbose )
 				fprintf(stdout,"   modal condensation of K and M complete\n");
 		}
@@ -773,12 +740,12 @@ For compilation/installation, see README.txt.
 
 	/* deallocate memory used for each frame analysis variable */
 	deallocate ( nN, nE, nL, nF, nU, nW, nP, nT, DoF, nM,
-			xyz, rj, L, Le, N1, N2, q,r,
-			Ax, Asy, Asz, Jx, Iy, Iz, E, G, p,
+			xyz, rj, scope.L, scope.Le, scope.N1, scope.N2, scope.q,scope.r,
+			scope.Ax, scope.Asy, scope.Asz, scope.Jx, scope.Iy, scope.Iz, scope.E, scope.G, scope.p,
 			U,W,P,T, Dp, F_mech, F_temp,
 			eqF_mech, eqF_temp, F, dF,
 			K, Q, D, dD, R, dR,
-			d,EMs,NMs,NMx,NMy,NMz, M,f,V, c, m,
+			scope.d,EMs,NMs,NMx,NMy,NMz, M,f,V, c, m,
 			pkNx, pkVy, pkVz, pkTx, pkMy, pkMz,
 			pkDx, pkDy, pkDz, pkRx, pkSy, pkSz
 	);
