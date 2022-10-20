@@ -26,6 +26,7 @@ typedef struct RuntimeArgs {
 		verbose;	// 1: copious screen output, 0: none
 } RuntimeArgs;
 
+// TODO check which properties were never used
 typedef struct {
 	vec3	*xyz;		// X,Y,Z node coordinates (global)
 	int
@@ -34,10 +35,33 @@ typedef struct {
 		nN,		// number of Nodes
 		nE,		// number of frame Elements
 		nL,		// number of Load cases
+		nX,		// number of elemts w/ extra mass
+		nI,		// number of nodes w/ extra inertia
+		nM,		// number of desired modes
+		nD[_NL_],	// number of prescribed nodal displ'nts
+		nF[_NL_],	// number of loaded nodes
+		nU[_NL_],	// number of members w/ unifm dist loads
+		nW[_NL_],	// number of members w/ trapz dist loads
+		nP[_NL_],	// number of members w/ conc point loads
+		nT[_NL_],	// number of members w/ temp. changes
 		DoF,		// number of Degrees of Freedom
 		nR,		// number of restrained nodes
-		*N1, *N2;	// begin and end node numbers
+		nC,		// number of condensed nodes
+		*N1, *N2,	// begin and end node numbers
+		Mmethod,	// 1: Subspace Jacobi, 2: Stodola
+		Cmethod,	// matrix condensation method
+		Cdof,		// number of condensed degrees o freedom
+		*c,		// vector of DoF's to condense
+		*m,		// vector of modes to condense
+		lump,		// 1: lumped, 0: consistent mass matrix
+		shear,		// indicates shear deformation
+		geom,		// indicates  geometric nonlinearity
+		anlyz,		// 1: stiffness analysis, 0: data check
+		anim[128];	// the modes to be animated
 	float
+		pan,		// >0: pan during animation; 0: don't
+		scale,		// zoom scale for 3D plotting in Gnuplot
+		dx,		// x-increment for internal force data
 		*rj,		// node size radius, for finite sizes
 		*Ax,*Asy, *Asz,	// cross section areas, incl. shear
 		*Jx,*Iy,*Iz,	// section inertias
@@ -56,7 +80,19 @@ typedef struct {
 		gZ[_NL_];	// gravitational acceleration in global Z
 	double
 		*L,		// node-to-node length of each element
-		*Le;		// effcve lngth, accounts for node size
+		*Le,		// effcve lngth, accounts for node size
+		*F,	 	// total load vectors for a load case
+		***eqF_mech,	// equivalent end forces from mech loads global
+		***eqF_temp,	// equivalent end forces from temp loads global
+		**F_mech,	// mechanical load vectors, all load cases
+		**F_temp,	// thermal load vectors, all load cases
+		**Q,		// local member node end-forces
+		tol,		// tolerance for modal convergence
+		shift,		// shift-factor for rigid-body-modes
+		struct_mass,	// mass of structural system
+		total_mass,	// total structural mass and extra mass
+		exagg_static,	// exaggerate static displ. in mesh data
+		exagg_modal;	// exaggerate modal displ. in mesh data
 } InputScope;
 
 #endif /* COMPAT_TYPES_H */

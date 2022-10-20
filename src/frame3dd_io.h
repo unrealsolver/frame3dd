@@ -119,17 +119,12 @@ void read_frame_element_data (
 void read_run_data (
 	FILE *fp,	/**< input data file pointer			*/
 	char OUT_file[], /**< output data file name			*/
-	int *shear,	/**< 1: include shear deformations, 0: don't	*/
-	int *geom,	/**< 1: include geometric stiffness, 0: don't	*/
 	char meshpath[],/**< file name for mesh data output		*/
 	char plotpath[],/**< file name for Gnuplot script		*/
 	char infcpath[],/**< file name for internal force data		*/
-	double *exagg_static,/**< factor for static displ. exaggeration	*/
-	float *scale,	/**< zoom scale for 3D plotting in gnuplot      */
-	float *dx,	/**< frame element increment for internal forces*/
-	int *anlyz,	/**< 1: perform elastic analysis, 0: don't	*/
 	RunOptions *run_options, /**< RunOptions object          	*/
-	RuntimeArgs args  /**< Command line options			*/
+	RuntimeArgs args,  /**< Command line options			*/
+	InputScope *scope
 );
 
 
@@ -154,40 +149,10 @@ void read_element_number(
 */
 void read_and_assemble_loads(
 	FILE *fp,	/**< input data file pointer			*/
-	int DoF,	/**< number of degrees of freedom		*/
-	vec3 *xyz,	/**< XYZ coordinates of each node		*/
-	double *L, double *Le,	/**< length of each frame element, effective */
-	int *N1, int *N2, 	/**< node connectivity			*/
-	float *Ax, float *Asy, float *Asz,	/**< section areas	*/
-	float *Iy, float *Iz,	/**< section inertias			*/
-	float *E, float *G,	/**< elastic moduli and shear moduli	*/
-	float *p,	/**< roll angle of each frame element (radians)	*/
-	float *d,  /**< mass density of each frame element		*/
-	float *gX, /**< gravitational acceleration in global X each load case */
-	float *gY, /**< gravitational acceleration in global Y each load case */
-	float *gZ, /**< gravitational acceleration in global Z each load case */
-	int *r,		/**< r[i]=1: DoF i is fixed, r[i]=0: DoF i is free */
-	int shear,	/**< 1: include shear deformations, 0: don't	*/
-	int *nF, 		/**< number of concentrated node loads */
-	int *nU, 		/**< number of uniformly distributed loads */
-	int *nW,		/**< number of trapezoidaly distributed loads */
-	int *nP, 		/**< number of concentrated point loads	*/
-	int *nT, 		/**< number of temperature loads	*/
-	int *nD,		/**< number of prescribed displacements */
-	double **Q,		/**< frame element end forces, every beam */
-	double **F_temp, 	/**< thermal loads			*/
-	double **F_mech, 	/**< mechanical loads			*/
-	double *Fo,	 	/**< thermal loads + mechanical loads	*/
-	float ***U,		/**< uniformally distributed loads	*/
-	float ***W,		/**< trapezoidally distributed loads	*/
-	float ***P,		/**< concentrated point loads		*/
-	float ***T,	 	/**< temperature loads			*/
-	float **Dp,		/**< prescribed displacements at rctns	*/
-	double ***eqF_mech,	/**< equiv. end forces for mech. loads	*/
-	double ***eqF_temp,	/**< equiv. end forces for temp. loads	*/
 	int verbose,		/**< 1: copious output to screen, 0: none */
 	Frame *frame,
-	LoadCases *load_cases	/**< Load cases array  */
+	LoadCases *load_cases,	/**< Load cases array  */
+	InputScope *scope	/**< Input data struct */
 );
 
 
@@ -197,25 +162,9 @@ void read_and_assemble_loads(
 void read_mass_data(
 	FILE *fp,	/**< input data file pointer			*/
 	char *OUT_file,	/**< input output data file name 		*/
-	int nN, int nE,	/**< number of nodes, number of frame elements */
-	int *nI,	/**< number of nodes with extra inertia	*/
-	int *nX,	/**< number of elements with extra mass		*/
-	float *d, float *EMs, /**< density, extra frame element mass	*/
-	float *NMs, float *NMx, float *NMy, float *NMz, /**< node inertia*/
-	double *L,	/**< length of each frame element		*/
-	float *Ax, 	/**< cross section area of each frame element	*/
-	double *total_mass,	/**< total mass of structure and extra mass */
-	double *struct_mass, 	/**< mass of structural elements	*/
-	int *nM,	/**< number of modes to find			*/
-	int *Mmethod, 	/**< modal analysis method			*/
-	int *lump,	/**< 1: use lumped mass matrix, 0: consistent mass */
-	double *tol,	/**< convergence tolerance for mode shapes	*/
-	double *shift,	/**< frequency shift for unrestrained frames	*/
-	double *exagg_modal, /**< exaggerate modal displacements	*/
 	char modepath[], /**< filename for mode shape data for plotting	*/
-	int *anim,	/**< list of modes to be graphically animated	*/
-	float *pan,	/**< 1: pan viewpoint during animation, 0: don't */
-	RuntimeArgs args /**< Command line options		*/
+	RuntimeArgs args, /**< Command line options		*/
+	InputScope *scope /**< Input data combined */
 );
 
 
@@ -224,14 +173,9 @@ void read_mass_data(
  */
 void read_condensation_data(
 	FILE *fp,	/**< input data file pointer			*/
-	int nN, int nM, 	/**< number of nodes, number of modes	*/
-	int *nC,	/**< number of nodes with condensed DoF's	*/
-	int *Cdof,	/**< list of DoF's retained in condensed model	*/
-	int *Cmethod,	/**< matrix conden'n method, static, Guyan, dynamic*/
-	int *c,		/**< list of retained degrees of freedom	*/
-	int *m,		/**< list of retained modes in dynamic condensation */
 	int verbose,	/**< 1: copious output to screen, 0: none	*/
-	RuntimeArgs args /**< Command line options		*/
+	RuntimeArgs args, /**< Command line options		*/
+	InputScope *scope /**< Input data combined */
 );
 
 
