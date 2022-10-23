@@ -24,7 +24,8 @@ Import('env')
 
 srcs = [
 	'frame3dd.c','eig.c','HPGmatrix.c','HPGutil.c','NRutil.c'
-	,'frame3dd_io.c', 'coordtrans.c', 'gnuplot_writer.c', 'struct_writer.c'
+	,'frame3dd_io.c', 'coordtrans.c', 'gnuplot_writer.c', 'struct_writer.c',
+    'compat_types.c'
 ]
 
 prog_env = env.Clone()

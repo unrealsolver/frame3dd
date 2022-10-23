@@ -872,7 +872,6 @@ void read_reaction_data(
 	const int DoF = scope->DoF;
 	const int nN = scope->nN;
 
-	scope->q = ivector(1, DoF);	/* allocate memory for reaction data ... */
 	scope->r = ivector(1, DoF);	/* allocate memory for reaction data ... */
 
 	for (i=1; i<=DoF; i++)
@@ -942,20 +941,8 @@ void read_reaction_data(
 		node->dof.zz = r[j * 6];
 	    }
 	}
-	scope->sumR=0;	for (i=1;i<=DoF;i++)	scope->sumR += r[i];
-	if (scope->sumR < 4) {
-	    sprintf(errMsg,"\n  Warning:  un-restrained structure   %d imposed reactions.\n  At least 4 reactions are required to support static loads.\n", scope->sumR);
-	    errorMsg(errMsg);
-	    /*	exit(84); */
-	}
-	if (scope->sumR >= DoF) {
-	    sprintf(errMsg,"\n  error in reaction data:  Fully restrained structure\n   %d imposed reactions >= %d degrees of freedom\n", scope->sumR, DoF);
-	    errorMsg(errMsg);
-	    exit(85);
-	}
 
-	for (i=1; i<=DoF; i++)
-		scope->q[i] = r[i] == 0;
+	Error_handle(IS_set_derived_reaction_data(scope, scope->r));
 
 	return;
 }

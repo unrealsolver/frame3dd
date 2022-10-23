@@ -2,7 +2,20 @@
 #define COMPAT_TYPES_H
 
 #include <stdlib.h>
+#include <stdint.h>
 #include "frame3dd.h"
+#include "HPGutil.h"
+
+typedef struct {
+	uint8_t code;
+	const char *message;
+} Error;
+
+Error *Error_new(const uint8_t code, const char *message);
+
+void Error_handle(Error *self);
+
+void Error_destroy(Error *self);
 
 struct Overrides {
 	double	exagg,
@@ -94,5 +107,14 @@ typedef struct {
 		exagg_static,	// exaggerate static displ. in mesh data
 		exagg_modal;	// exaggerate modal displ. in mesh data
 } InputScope;
+
+
+/**
+ * Set reactions to InputScope
+ */
+Error *IS_set_reaction_data(
+	InputScope *self,
+	const uint_fast8_t *reactions
+);
 
 #endif /* COMPAT_TYPES_H */
