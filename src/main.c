@@ -57,6 +57,25 @@ For compilation/installation, see README.txt.
 #include "HPGutil.h"
 #include "NRutil.h"
 
+
+typedef struct {
+	double rms_resid; // root mean square of residual displ. error
+	double error; // rms equilibrium error and reactions
+	int ok; // number of (-ve) diag. terms of L D L'
+	int iter; // number of iterations
+} ResultsMetadata;
+
+uint8_t solve(
+	const InputScope scope,
+	const RuntimeArgs args,
+	Results *results,
+	ResultsMetadata results_metadata,
+	double **K,
+	double *D,
+	double *R,
+	const int lc
+);
+
 // compile the Frame3DD analysis into another code, such as a GUI
 #ifdef WITH_GLOBALS
  int run_kernel ( int argc, char *argv[] ) {
@@ -66,6 +85,13 @@ For compilation/installation, see README.txt.
 #ifndef WITH_GLOBALS
  int main ( int argc, char *argv[] ) {
 #endif
+
+	 ResultsMetadata result_metadata = {
+		 .rms_resid = 1.0,
+		 .error = 1.0,
+		 .ok = 1,
+		 .iter = 0
+	 };
 
 	char	IN_file[FILENMAX],	// the input  data filename
 		OUT_file[FILENMAX],	// the output data filename
@@ -78,6 +104,9 @@ For compilation/installation, see README.txt.
 		strippedInputFile[FRAME3DD_PATHMAX] = "EMPTY_TEMP"; // temp data path
 
 	FILE	*fp;		// input and output file pointer
+
+	double rms_resid=1.0;	// root mean square of residual displ. error
+	double error = 1.0;	// rms equilibrium error and reactions
 
 	double	**K=NULL,	// equilibrium stiffness matrix
 		// **Ks=NULL,	// Broyden secant stiffness matrix
@@ -92,15 +121,8 @@ For compilation/installation, see README.txt.
 		*dF = NULL,	// equilibrium error in nonlinear anlys
 		*f  = NULL,	// resonant frequencies
 		**V = NULL,	// resonant mode-shapes
-		rms_resid=1.0,	// root mean square of residual displ. error
-		error = 1.0,	// rms equilibrium error and reactions
 		Cfreq = 0.0,	// frequency used for Guyan condensation
 		**Kc, **Mc;	// condensed stiffness and mass matrices
-
-		// peak internal forces, moments, and displacments
-		// in each frame element and each load case
-	double	**pkNx, **pkVy, **pkVz, **pkTx, **pkMy, **pkMz,
-		**pkDx, **pkDy, **pkDz, **pkRx, **pkSy, **pkSz;
 
 	int	nN=0,		// number of Nodes
 		nE=0,		// number of frame Elements
@@ -110,7 +132,6 @@ For compilation/installation, see README.txt.
 		iter=0,		// number of iterations
 		ok=1,		// number of (-ve) diag. terms of L D L'
 		filetype=0,	// 1 if .CSV, 2 if file is Matlab
-		axial_strain_warning = 0, // 0: "ok", 1: strain > 0.001
 		ExitCode = 0;	// error code returned by Frame3DD
 
 	int	sfrv=0;		// *scanf return value for err checking
@@ -247,31 +268,6 @@ For compilation/installation, see README.txt.
 	}
 
 
-	dF	= dvector(1,DoF);	/* equilibrium error {F} - [K]{D} */
-
-	K   = dmatrix(1,DoF,1,DoF);	/* global stiffness matrix	*/
-
-	D   = dvector(1,DoF);	/* displacments of each node		*/
-	dD  = dvector(1,DoF);	/* incremental displ. of each node	*/
-	R   = dvector(1,DoF);	/* reaction forces			*/
-	dR  = dvector(1,DoF);	/* incremental reaction forces		*/
-
-
-	// peak axial forces, shears, torques, and moments along each element
-	pkNx = dmatrix(1,nL,1,nE);
-	pkVy = dmatrix(1,nL,1,nE);
-	pkVz = dmatrix(1,nL,1,nE);
-	pkTx = dmatrix(1,nL,1,nE);
-	pkMy = dmatrix(1,nL,1,nE);
-	pkMz = dmatrix(1,nL,1,nE);
-
-	// peak displacements and slopes along each element
-	pkDx = dmatrix(1,nL,1,nE);
-	pkDy = dmatrix(1,nL,1,nE);
-	pkDz = dmatrix(1,nL,1,nE);
-	pkRx = dmatrix(1,nL,1,nE);
-	pkSy = dmatrix(1,nL,1,nE);
-	pkSz = dmatrix(1,nL,1,nE);
 
 	read_and_assemble_loads(fp, verbose, frame, load_cases, &scope);
 
@@ -311,180 +307,15 @@ For compilation/installation, see README.txt.
 	);
 
 
+	K = dmatrix(1,DoF,1,DoF);	/* global stiffness matrix	*/
+	D = dvector(1,DoF);	/* displacments of each node		*/
+	R = dvector(1,DoF);	/* reaction forces			*/
+
 	if ( scope.anlyz ) {			/* solve the problem	*/
 		srand(time(NULL));
-		for (lc=1; lc<=nL; lc++) {	/* begin load case analysis loop */
-			if ( verbose ) {	/* display the load case number  */
-				fprintf(stdout,"\n");
-				textColor('y','g','b','x');
-				fprintf(stdout," Load Case %d of %d ... ", lc,nL );
-				fprintf(stdout,"                                          ");
-
-				fflush(stdout);
-				color(0);
-				fprintf(stdout,"\n");
-			}
-
+		for (lc=1; lc <= nL; lc++) {	/* begin load case analysis loop */
 			LoadCaseResult *lc_result = &results->data[lc - 1];
-
-			/*  initialize displacements and displ. increment to {0}  */
-			/*  initialize reactions     and react. increment to {0}  */
-			for (i=1; i<=DoF; i++) D[i] = dD[i] = R[i] = dR[i] = 0.0;
-
-			// FIXME Possible duplicates initialization in the read_and_assemble_loads
-			/*  initialize internal element end forces Q = {0}	*/
-			for (i=1; i<=nE; i++) for (j=1;j<=12;j++) scope.Q[i][j] = 0.0;
-
-			/*  elastic stiffness matrix  [K({D}^(i))], {D}^(0)={0} (i=0) */
-			assemble_K(
-				K, DoF, nE, scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2,
-				scope.Ax, scope.Asy, scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-				scope.shear, scope.geom, scope.Q, debug
-			);
-
-#ifdef MATRIX_DEBUG
-			save_dmatrix ( "Ku", K, 1,DoF, 1,DoF, 0, "w" ); // unloaded stiffness matrix
-#endif
-
-			/* first apply temperature loads only, if there are any ... */
-			if (scope.nT[lc] > 0) {
-				if (verbose)
-					fprintf(stdout," Linear Elastic Analysis ... Temperature Loads\n");
-
-				/*  solve {F_t} = [K({D=0})] * {D_t} */
-				solve_system(K,dD,scope.F_temp[lc],dR,DoF,scope.q,scope.r,&ok,verbose,&rms_resid);
-
-				/* increment {D_t} = {0} + {D_t} temp.-induced displ */
-				for (i=1; i<=DoF; i++)	if (scope.q[i]) D[i] += dD[i];
-				/* increment {R_t} = {0} + {R_t} temp.-induced react */
-				for (i=1; i<=DoF; i++)	if (scope.r[i]) R[i] += dR[i];
-
-				if (scope.geom) {	/* assemble K = Ke + Kg */
-				 /* compute   {Q}={Q_t} ... temp.-induced forces     */
-					element_end_forces(
-						scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
-						scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
-						scope.eqF_temp[lc], scope.eqF_mech[lc], D, scope.shear, scope.geom,
-						&axial_strain_warning
-					);
-					/* assemble temp.-stressed stiffness [K({D_t})]     */
-					assemble_K(
-						K, DoF, nE, scope.xyz, scope.rj,
-						scope.L, scope.Le, scope.N1, scope.N2,
-						scope.Ax,scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-						scope.shear, scope.geom, scope.Q, debug
-					);
-				}
-			}
-
-			/* ... then apply mechanical loads only, if there are any ... */
-			if (
-				scope.nF[lc]>0 || scope.nU[lc]>0 || scope.nW[lc]>0 || scope.nP[lc]>0 || scope.nD[lc]>0 ||
-				scope.gX[lc] != 0 || scope.gY[lc] != 0 || scope.gZ[lc] != 0
-			) {
-				if ( verbose )
-					fprintf(stdout," Linear Elastic Analysis ... Mechanical Loads\n");
-				/* incremental displ at react'ns = prescribed displ */
-				for (i=1; i<=DoF; i++)	if (scope.r[i]) dD[i] = scope.Dp[lc][i];
-
-				/*  solve {F_m} = [K({D_t})] * {D_m}	*/
-				solve_system(K,dD,scope.F_mech[lc],dR,DoF,scope.q,scope.r,&ok,verbose,&rms_resid);
-
-				/* combine {D} = {D_t} + {D_m}	*/
-				for (i=1; i<=DoF; i++) {
-					if (scope.q[i])	D[i] += dD[i];
-					else {		D[i]  = scope.Dp[lc][i]; dD[i] = 0.0; }
-				}
-				/* combine {R} = {R_t} + {R_m} --- for linear systems */
-				for (i=1; i<=DoF; i++) if (scope.r[i]) R[i] += dR[i];
-			}
-
-
-			/*  combine {F} = {F_t} + {F_m} */
-			for (i=1; i<=DoF; i++)	scope.F[i] = scope.F_temp[lc][i] + scope.F_mech[lc][i];
-
-			/*  element forces {Q} for displacements {D}	*/
-			element_end_forces ( scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
-					scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
-					scope.eqF_temp[lc], scope.eqF_mech[lc], D, scope.shear, scope.geom,
-					&axial_strain_warning );
-
-			/*  check the equilibrium error	*/
-			error = equilibrium_error ( dF, scope.F, K, D, DoF, scope.q,scope.r );
-
-			if ( scope.geom && verbose )
-				fprintf(stdout,"\n Non-Linear Elastic Analysis ...\n");
-
-/*
- *	 		if ( geom ) { // initialize Broyden secant stiffness matrix, Ks
- *				Ks  = dmatrix( 1, DoF, 1, DoF );
- *				for (i=1;i<=DoF;i++) {
- *					for(j=i;j<=DoF;j++) {
- *						Ks[i][j]=Ks[j][i]=K[i][j];
- *					}
- *				}
- *			}
- */
-
-			/* quasi Newton-Raphson iteration for geometric nonlinearity  */
-			if (scope.geom) { error = 1.0; ok = 0; iter = 0; } /* re-initialize */
-			while ( scope.geom && error > scope.tol && iter < 500 && ok >= 0) {
-				++iter;
-
-				/*  assemble stiffness matrix [K({D}^(i))]	      */
-				assemble_K ( K, DoF, nE, scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2,
-					scope.Ax,scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-					scope.shear,scope.geom, scope.Q, debug );
-
-				/*  compute equilibrium error, {dF}, at iteration i   */
-				/*  {dF}^(i) = {F} - [K({D}^(i))]*{D}^(i)	      */
-				/*  convergence criteria = || {dF}^(i) ||  /  || F || */
-				error = equilibrium_error ( dF, scope.F, K, D, DoF, scope.q,scope.r );
-
-				/*  Powell-Symmetric-Broyden secant stiffness update  */
-				// PSB_update ( Ks, dF, dD, DoF );  /* not helpful?   */
-
-				/*  solve {dF}^(i) = [K({D}^(i))] * {dD}^(i)	      */
-				solve_system(K,dD,dF,dR,DoF,scope.q,scope.r,&ok,verbose,&rms_resid);
-
-				if ( ok < 0 ) {	/*  K is not positive definite	      */
-					fprintf(stderr,"   The stiffness matrix is not pos-def. \n");
-					fprintf(stderr,"   Reduce loads and re-run the analysis.\n");
-					ExitCode = 181;
-					break;
-				}
-
-				/*  increment {D}^(i+1) = {D}^(i) + {dD}^(i)	      */
-				for (i=1; i<=DoF; i++)	if (scope.q[i])	D[i] += dD[i];
-
-				/*  element forces {Q} for displacements {D}^(i)      */
-				element_end_forces ( scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
-					scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
-					scope.eqF_temp[lc], scope.eqF_mech[lc], D, scope.shear, scope.geom,
-					&axial_strain_warning );
-
-				if ( verbose ) { /*  display equilibrium error        */
-				 fprintf(stdout,"   NR iteration %3d ---", iter);
-				 fprintf(stdout," RMS relative equilibrium error = %8.2e \n",error);
-				}
-			}			/* end quasi Newton-Raphson iteration */
-
-
-			/*   strain limit failure ... */
-			if (axial_strain_warning > 0 && ExitCode == 0)   ExitCode = 182;
-			/*   strain limit _and_ buckling failure ... */
-			if (axial_strain_warning > 0 && ExitCode == 181) ExitCode = 183;
-
-			if ( scope.geom )	compute_reaction_forces( R,scope.F,K, D, DoF, scope.r );
-
-			/*  dealocate Broyden secant stiffness matrix, Ks */
-			// if ( geom )	free_dmatrix(Ks, 1, DoF, 1, DoF );
-
-			if ( args.write_matrix )	/* write static stiffness matrix */
-				save_ut_dmatrix ( "Ks", K, DoF, "w" );
-
-			/*  display RMS equilibrium error */
-			if ( verbose && ok >= 0 ) evaluate ( error, rms_resid, scope.tol );
+			ExitCode = solve(scope, args, results, result_metadata, K, D, R, lc);
 
 			write_static_struct(lc_result, frame, D, scope.Q);
 
@@ -501,13 +332,13 @@ For compilation/installation, see README.txt.
 						scope.N1,scope.N2, scope.F,D,R, scope.r,scope.Q, error, ok, frame, load_cases);
 			}
 
-/*
- * 			if ( verbose )
- * 			 printf("\n   If the program pauses here for very long,"
- * 			 " hit CTRL-C to stop execution, \n"
- * 			 "    reduce exagg_static in the Input Data,"
- * 			 " and re-run the analysis. \n");
- */
+		/*
+		* 			if ( verbose )
+		* 			 printf("\n   If the program pauses here for very long,"
+		* 			 " hit CTRL-C to stop execution, \n"
+		* 			 "    reduce exagg_static in the Input Data,"
+		* 			 " and re-run the analysis. \n");
+		*/
 
 			write_internal_forces ( OUT_file, fp, infcpath, lc, title, scope.dx, scope.xyz,
 						scope.Q, scope.L, scope.N1, scope.N2,
@@ -522,7 +353,8 @@ For compilation/installation, see README.txt.
 						scope.exagg_static, scope.anlyz,
 						scope.dx, scope.scale, load_cases, frame, args );
 
-		} /* end load case loop */
+			if (ExitCode != 0) break;
+		}
 	} else {		/*  data check only  */
 		if ( verbose ) {	/* display data check only */
 			fprintf(stdout,"\n * %s *\n", title );
@@ -553,7 +385,7 @@ For compilation/installation, see README.txt.
 
 		assemble_M ( M, DoF, nN, nE, scope.xyz, scope.rj, scope.L, scope.N1, scope.N2,
 				scope.Ax, scope.Jx,scope.Iy,scope.Iz, scope.p, scope.d, scope.EMs, scope.NMs, scope.NMx, scope.NMy, scope.NMz,
-				scope.lump, debug );
+				scope.lump, args.debug );
 
 #ifdef MATRIX_DEBUG
 		save_dmatrix ( "Mf", M, 1,DoF, 1,DoF, 0, "w" ); /* free mass matrix */
@@ -649,16 +481,16 @@ For compilation/installation, see README.txt.
 	}
 
 	/* deallocate memory used for each frame analysis variable */
-	deallocate ( nN, nE, nL, scope.nF, scope.nU, scope.nW, scope.nP, scope.nT, DoF, scope.nM,
-			scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2, scope.q,scope.r,
-			scope.Ax, scope.Asy, scope.Asz, scope.Jx, scope.Iy, scope.Iz, scope.E, scope.G, scope.p,
-			scope.U,scope.W,scope.P,scope.T, scope.Dp, scope.F_mech, scope.F_temp,
-			scope.eqF_mech, scope.eqF_temp, scope.F, dF,
-			K, scope.Q, D, dD, R, dR,
-			scope.d,scope.EMs,scope.NMs,scope.NMx,scope.NMy,scope.NMz, M,f,V, scope.c, scope.m,
-			pkNx, pkVy, pkVz, pkTx, pkMy, pkMz,
-			pkDx, pkDy, pkDz, pkRx, pkSy, pkSz
-	);
+	//deallocate ( nN, nE, nL, scope.nF, scope.nU, scope.nW, scope.nP, scope.nT, DoF, scope.nM,
+	//		scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2, scope.q,scope.r,
+	//		scope.Ax, scope.Asy, scope.Asz, scope.Jx, scope.Iy, scope.Iz, scope.E, scope.G, scope.p,
+	//		scope.U,scope.W,scope.P,scope.T, scope.Dp, scope.F_mech, scope.F_temp,
+	//		scope.eqF_mech, scope.eqF_temp, scope.F, dF,
+	//		K, scope.Q, D, dD, R, dR,
+	//		scope.d,scope.EMs,scope.NMs,scope.NMx,scope.NMy,scope.NMz, M,f,V, scope.c, scope.m,
+	//		pkNx, pkVy, pkVz, pkTx, pkMy, pkMz,
+	//		pkDx, pkDy, pkDz, pkRx, pkSy, pkSz
+	//);
 
 	free(frame);
 	free(load_cases);
@@ -676,4 +508,198 @@ For compilation/installation, see README.txt.
 	color(0);
 
 	return( ExitCode );
+}
+
+uint8_t solve(
+	const InputScope scope, const RuntimeArgs args, Results *results,
+	ResultsMetadata results_metadata, double **K, double *D, double *R,
+	const int lc
+) {
+	// Iterators
+	u_int16_t i, j;
+
+	// Aliases
+	const uint16_t DoF = scope.DoF;
+	const uint16_t nL = scope.nL;
+	const uint16_t nE = scope.nE;
+	ResultsMetadata meta = results_metadata;
+
+	uint8_t ExitCode = 0;
+	int axial_strain_warning = 0; // 0: "ok", 1: strain > 0.001
+
+	double *dF  = dvector(1,DoF);		/* equilibrium error {F} - [K]{D} */
+	double *dD  = dvector(1,DoF);	/* incremental displ. of each node	*/
+	double *dR  = dvector(1,DoF);	/* incremental reaction forces		*/
+
+	if ( args.verbose ) {	/* display the load case number  */
+		fprintf(stdout,"\n");
+		textColor('y','g','b','x');
+		fprintf(stdout," Load Case %d of %d ... ", lc, scope.nL );
+		fprintf(stdout,"                                          ");
+
+		fflush(stdout);
+		color(0);
+		fprintf(stdout,"\n");
+	}
+
+	/*  initialize displacements and displ. increment to {0}  */
+	/*  initialize reactions     and react. increment to {0}  */
+	for (i=1; i<=  DoF; i++) D[i] = dD[i] = R[i] = dR[i] = 0.0;
+
+	// FIXME Possible duplicates initialization in the read_and_assemble_loads
+	/*  initialize internal element end forces Q = {0}	*/
+	for (i=1; i<= nE; i++) for (j=1;j<=12;j++) scope.Q[i][j] = 0.0;
+
+	/*  elastic stiffness matrix  [K({D}^(i))], {D}^(0)={0} (i=0) */
+	assemble_K(
+		K, DoF, nE, scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2,
+		scope.Ax, scope.Asy, scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
+		scope.shear, scope.geom, scope.Q, args.debug
+	);
+
+#ifdef MATRIX_DEBUG
+	save_dmatrix ( "Ku", K, 1,DoF, 1,DoF, 0, "w" ); // unloaded stiffness matrix
+#endif
+
+	/* first apply temperature loads only, if there are any ... */
+	if (scope.nT[lc] > 0) {
+		if (args.verbose)
+			fprintf(stdout," Linear Elastic Analysis ... Temperature Loads\n");
+
+		/*  solve {F_t} = [K({D=0})] * {D_t} */
+		solve_system(K,dD,scope.F_temp[lc],dR,DoF,scope.q,scope.r, &meta.ok, args.verbose, &meta.rms_resid);
+
+		/* increment {D_t} = {0} + {D_t} temp.-induced displ */
+		for (i=1; i<=DoF; i++)	if (scope.q[i]) D[i] += dD[i];
+		/* increment {R_t} = {0} + {R_t} temp.-induced react */
+		for (i=1; i<=DoF; i++)	if (scope.r[i]) R[i] += dR[i];
+
+		if (scope.geom) {	/* assemble K = Ke + Kg */
+		 /* compute   {Q}={Q_t} ... temp.-induced forces     */
+			element_end_forces(
+				scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+				scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
+				scope.eqF_temp[lc], scope.eqF_mech[lc], D, scope.shear, scope.geom,
+				&axial_strain_warning
+			);
+			/* assemble temp.-stressed stiffness [K({D_t})]     */
+			assemble_K(
+				K, DoF, nE, scope.xyz, scope.rj,
+				scope.L, scope.Le, scope.N1, scope.N2,
+				scope.Ax,scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
+				scope.shear, scope.geom, scope.Q, args.debug
+			);
+		}
+	}
+
+	/* ... then apply mechanical loads only, if there are any ... */
+	if (
+		scope.nF[lc]>0 || scope.nU[lc]>0 || scope.nW[lc]>0 || scope.nP[lc]>0 || scope.nD[lc]>0 ||
+		scope.gX[lc] != 0 || scope.gY[lc] != 0 || scope.gZ[lc] != 0
+	) {
+		if ( args.verbose )
+			fprintf(stdout," Linear Elastic Analysis ... Mechanical Loads\n");
+		/* incremental displ at react'ns = prescribed displ */
+		for (i=1; i<=DoF; i++)	if (scope.r[i]) dD[i] = scope.Dp[lc][i];
+
+		/*  solve {F_m} = [K({D_t})] * {D_m}	*/
+		solve_system(K,dD,scope.F_mech[lc],dR,DoF,scope.q,scope.r, &meta.ok, args.verbose, &meta.rms_resid);
+
+		/* combine {D} = {D_t} + {D_m}	*/
+		for (i=1; i<=DoF; i++) {
+			if (scope.q[i])	D[i] += dD[i];
+			else {		D[i]  = scope.Dp[lc][i]; dD[i] = 0.0; }
+		}
+		/* combine {R} = {R_t} + {R_m} --- for linear systems */
+		for (i=1; i<=DoF; i++) if (scope.r[i]) R[i] += dR[i];
+	}
+
+
+	/*  combine {F} = {F_t} + {F_m} */
+	for (i=1; i<=DoF; i++)	scope.F[i] = scope.F_temp[lc][i] + scope.F_mech[lc][i];
+
+	/*  element forces {Q} for displacements {D}	*/
+	element_end_forces ( scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+			scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
+			scope.eqF_temp[lc], scope.eqF_mech[lc], D, scope.shear, scope.geom,
+			&axial_strain_warning );
+
+	/*  check the equilibrium error	*/
+	meta.error = equilibrium_error ( dF, scope.F, K, D, DoF, scope.q,scope.r );
+
+	if ( scope.geom && args.verbose )
+		fprintf(stdout,"\n Non-Linear Elastic Analysis ...\n");
+
+/*
+*	 		if ( geom ) { // initialize Broyden secant stiffness matrix, Ks
+*				Ks  = dmatrix( 1, DoF, 1, DoF );
+*				for (i=1;i<=DoF;i++) {
+*					for(j=i;j<=DoF;j++) {
+*						Ks[i][j]=Ks[j][i]=K[i][j];
+*					}
+*				}
+*			}
+*/
+
+	/* quasi Newton-Raphson iteration for geometric nonlinearity  */
+	if (scope.geom) { meta.error = 1.0; meta.ok = 0; meta.iter = 0; } /* re-initialize */
+	while ( scope.geom && meta.error > scope.tol && meta.iter < 500 && meta.ok >= 0) {
+		++meta.iter;
+
+		/*  assemble stiffness matrix [K({D}^(i))]	      */
+		assemble_K ( K, DoF, nE, scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2,
+			scope.Ax,scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
+			scope.shear,scope.geom, scope.Q, args.debug );
+
+		/*  compute equilibrium error, {dF}, at iteration i   */
+		/*  {dF}^(i) = {F} - [K({D}^(i))]*{D}^(i)	      */
+		/*  convergence criteria = || {dF}^(i) ||  /  || F || */
+		meta.error = equilibrium_error ( dF, scope.F, K, D, DoF, scope.q,scope.r );
+
+		/*  Powell-Symmetric-Broyden secant stiffness update  */
+		// PSB_update ( Ks, dF, dD, DoF );  /* not helpful?   */
+
+		/*  solve {dF}^(i) = [K({D}^(i))] * {dD}^(i)	      */
+		solve_system(K,dD,dF,dR,DoF,scope.q,scope.r,&meta.ok,args.verbose, &meta.rms_resid);
+
+		if ( meta.ok < 0 ) {	/*  K is not positive definite	      */
+			fprintf(stderr,"   The stiffness matrix is not pos-def. \n");
+			fprintf(stderr,"   Reduce loads and re-run the analysis.\n");
+			ExitCode = 181;
+			break;
+		}
+
+		/*  increment {D}^(i+1) = {D}^(i) + {dD}^(i)	      */
+		for (i=1; i<=DoF; i++)	if (scope.q[i])	D[i] += dD[i];
+
+		/*  element forces {Q} for displacements {D}^(i)      */
+		element_end_forces ( scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+			scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
+			scope.eqF_temp[lc], scope.eqF_mech[lc], D, scope.shear, scope.geom,
+			&axial_strain_warning );
+
+		if ( args.verbose ) { /*  display equilibrium error        */
+		 fprintf(stdout,"   NR iteration %3d ---", meta.iter);
+		 fprintf(stdout," RMS relative equilibrium error = %8.2e \n", meta.error);
+		}
+	}			/* end quasi Newton-Raphson iteration */
+
+
+	/*   strain limit failure ... */
+	if (axial_strain_warning > 0 && ExitCode == 0)   ExitCode = 182;
+	/*   strain limit _and_ buckling failure ... */
+	if (axial_strain_warning > 0 && ExitCode == 181) ExitCode = 183;
+
+	if ( scope.geom )	compute_reaction_forces( R,scope.F,K, D, DoF, scope.r );
+
+	/*  dealocate Broyden secant stiffness matrix, Ks */
+	// if ( geom )	free_dmatrix(Ks, 1, DoF, 1, DoF );
+
+	if ( args.write_matrix )	/* write static stiffness matrix */
+		save_ut_dmatrix ( "Ks", K, DoF, "w" );
+
+	/*  display RMS equilibrium error */
+	if ( args.verbose && meta.ok >= 0 ) evaluate ( meta.error, meta.rms_resid, scope.tol );
+
+	return ExitCode;
 }
