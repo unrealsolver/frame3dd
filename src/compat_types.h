@@ -106,7 +106,6 @@ typedef struct {
 		***eqF_temp,	// equivalent end forces from temp loads global
 		**F_mech,	// mechanical load vectors, all load cases
 		**F_temp,	// thermal load vectors, all load cases
-		**Q,		// local member node end-forces
 		tol,		// tolerance for modal convergence
 		shift,		// shift-factor for rigid-body-modes
 		struct_mass,	// mass of structural system
@@ -119,8 +118,8 @@ typedef struct {
 	double
 		**K,	// equilibrium stiffness matrix
 		*R,	// total reaction force vector
-		*D;	// displacement vector
-
+		*D,	// displacement vector
+		**Q;	// local member node end-forces
 } ResultScope;
 
 /**

@@ -11,7 +11,7 @@ uint8_t solve(
 	SolverContext ctx, ResultScope rs, const int lc
 ) {
 	// Iterators
-	u_int16_t i, j;
+	uint16_t i, j;
 
 	// Aliases
 	const uint16_t DoF = scope.DoF;
@@ -21,7 +21,7 @@ uint8_t solve(
 	uint8_t ExitCode = 0;
 	int axial_strain_warning = 0; // 0: "ok", 1: strain > 0.001
 
-	double *dF  = dvector(1,DoF);		/* equilibrium error {F} - [K]{D} */
+	double *dF  = dvector(1,DoF);	/* equilibrium error {F} - [K]{D} */
 	double *dD  = dvector(1,DoF);	/* incremental displ. of each node	*/
 	double *dR  = dvector(1,DoF);	/* incremental reaction forces		*/
 
@@ -40,15 +40,14 @@ uint8_t solve(
 	/*  initialize reactions     and react. increment to {0}  */
 	for (i=1; i<=  DoF; i++) rs.D[i] = dD[i] = rs.R[i] = dR[i] = 0.0;
 
-	// FIXME Possible duplicates initialization in the read_and_assemble_loads
 	/*  initialize internal element end forces Q = {0}	*/
-	for (i=1; i<= nE; i++) for (j=1;j<=12;j++) scope.Q[i][j] = 0.0;
+	for (i=1; i<= nE; i++) for (j=1;j<=12;j++) rs.Q[i][j] = 0.0;
 
 	/*  elastic stiffness matrix  [K({D}^(i))], {D}^(0)={0} (i=0) */
 	assemble_K(
 		rs.K, DoF, nE, scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2,
 		scope.Ax, scope.Asy, scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-		scope.shear, scope.geom, scope.Q, args.debug
+		scope.shear, scope.geom, rs.Q, args.debug
 	);
 
 #ifdef MATRIX_DEBUG
@@ -71,7 +70,7 @@ uint8_t solve(
 		if (scope.geom) {	/* assemble K = Ke + Kg */
 		 /* compute   {Q}={Q_t} ... temp.-induced forces     */
 			element_end_forces(
-				scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+				rs.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
 				scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
 				scope.eqF_temp[lc], scope.eqF_mech[lc], rs.D, scope.shear, scope.geom,
 				&axial_strain_warning
@@ -81,7 +80,7 @@ uint8_t solve(
 				rs.K, DoF, nE, scope.xyz, scope.rj,
 				scope.L, scope.Le, scope.N1, scope.N2,
 				scope.Ax,scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-				scope.shear, scope.geom, scope.Q, args.debug
+				scope.shear, scope.geom, rs.Q, args.debug
 			);
 		}
 	}
@@ -113,7 +112,7 @@ uint8_t solve(
 	for (i=1; i<=DoF; i++)	scope.F[i] = scope.F_temp[lc][i] + scope.F_mech[lc][i];
 
 	/*  element forces {Q} for displacements {D}	*/
-	element_end_forces ( scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+	element_end_forces (rs.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
 			scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
 			scope.eqF_temp[lc], scope.eqF_mech[lc], rs.D, scope.shear, scope.geom,
 			&axial_strain_warning );
@@ -143,7 +142,7 @@ uint8_t solve(
 		/*  assemble stiffness matrix [K({D}^(i))]	      */
 		assemble_K(rs.K, DoF, nE, scope.xyz, scope.rj, scope.L, scope.Le, scope.N1, scope.N2,
 			scope.Ax,scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E, scope.G, scope.p,
-			scope.shear,scope.geom, scope.Q, args.debug );
+			scope.shear,scope.geom, rs.Q, args.debug );
 
 		/*  compute equilibrium error, {dF}, at iteration i   */
 		/*  {dF}^(i) = {F} - [K({D}^(i))]*{D}^(i)	      */
@@ -167,7 +166,7 @@ uint8_t solve(
 		for (i=1; i<=DoF; i++)	if (scope.q[i])	rs.D[i] += dD[i];
 
 		/*  element forces {Q} for displacements {D}^(i)      */
-		element_end_forces ( scope.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
+		element_end_forces(rs.Q, nE, scope.xyz, scope.L, scope.Le, scope.N1, scope.N2,
 			scope.Ax, scope.Asy,scope.Asz, scope.Jx,scope.Iy,scope.Iz, scope.E,scope.G, scope.p,
 			scope.eqF_temp[lc], scope.eqF_mech[lc], rs.D, scope.shear, scope.geom,
 			&axial_strain_warning );

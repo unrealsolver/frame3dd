@@ -1031,8 +1031,6 @@ void read_and_assemble_loads (
 	scope->eqF_mech =  D3dmatrix(1,nL,1,nE,1,12); /* eqF due to mech loads */
 	scope->eqF_temp =  D3dmatrix(1,nL,1,nE,1,12); /* eqF due to temp loads */
 
-	scope->Q   = dmatrix(1,nE,1,12);	/* end forces for each member	*/
-
 	/* initialize load data vectors and matrices to zero */
 	for (j=1; j<=DoF; j++)	scope->F[j] = 0.0;
 	for (j=1; j<=DoF; j++)
@@ -1044,8 +1042,6 @@ void read_and_assemble_loads (
 				scope->eqF_mech[lc][n][i] = scope->eqF_temp[lc][n][i] = 0.0;
 
 	for (i=1; i<=DoF; i++)	for (lc=1; lc<=nL; lc++) scope->Dp[lc][i] = 0.0;
-
-	for (i=1;i<=nE;i++)	for(j=1;j<=12;j++)	scope->Q[i][j] = 0.0;
 
 	for (lc = 1; lc <= nL; lc++) {		/* begin load-case loop */
 

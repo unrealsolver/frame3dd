@@ -289,6 +289,7 @@ For compilation/installation, see README.txt.
 
 
 	rs.K = dmatrix(1,DoF,1,DoF);	/* global stiffness matrix	*/
+	rs.Q = dmatrix(1,nE,1,12);	/* end forces for each member	*/
 	rs.D = dvector(1,DoF);	/* displacments of each node		*/
 	rs.R = dvector(1,DoF);	/* reaction forces			*/
 
@@ -298,19 +299,19 @@ For compilation/installation, see README.txt.
 			LoadCaseResult *lc_result = &results->data[lc - 1];
 			ExitCode = solve(scope, args, results, ctx, rs, lc);
 
-			write_static_struct(lc_result, frame, rs.D, scope.Q);
+			write_static_struct(lc_result, frame, rs.D, rs.Q);
 
 			write_static_results ( fp, lc, DoF, scope.N1, scope.N2,
-					scope.F, rs.D, rs.R, scope.r,scope.Q, rms_resid, ok, args.axial_sign, frame, load_cases );
+					scope.F, rs.D, rs.R, scope.r, rs.Q, rms_resid, ok, args.axial_sign, frame, load_cases );
 
 			if ( filetype == 1 ) {		// .CSV format output
 				write_static_csv(OUT_file, title,
-				    lc, DoF, scope.N1, scope.N2, scope.F, rs.D, rs.R, scope.r,scope.Q, error, ok, frame, load_cases );
+				    lc, DoF, scope.N1, scope.N2, scope.F, rs.D, rs.R, scope.r, rs.Q, error, ok, frame, load_cases );
 			}
 
 			if ( filetype == 2 ) {		// .m matlab format output
 				write_static_mfile (OUT_file, title, lc, DoF,
-						scope.N1,scope.N2, scope.F, rs.D, rs.R, scope.r,scope.Q, error, ok, frame, load_cases);
+						scope.N1,scope.N2, scope.F, rs.D, rs.R, scope.r, rs.Q, error, ok, frame, load_cases);
 			}
 
 		/*
@@ -322,7 +323,7 @@ For compilation/installation, see README.txt.
 		*/
 
 			write_internal_forces ( OUT_file, fp, infcpath, lc, title, scope.dx, scope.xyz,
-						scope.Q, scope.L, scope.N1, scope.N2,
+						rs.Q, scope.L, scope.N1, scope.N2,
 						scope.p,
 						scope.d, scope.gX[lc], scope.gY[lc], scope.gZ[lc],
 						scope.nU[lc],scope.U[lc],scope.nW[lc],scope.W[lc],scope.nP[lc],scope.P[lc],
