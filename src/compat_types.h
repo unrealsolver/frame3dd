@@ -39,6 +39,13 @@ typedef struct RuntimeArgs {
 		verbose;	// 1: copious screen output, 0: none
 } RuntimeArgs;
 
+typedef struct {
+	double rms_resid; // root mean square of residual displ. error
+	double error;	// rms equilibrium error and reactions
+	int ok;		// number of (-ve) diag. terms of L D L'
+	int iter;	// number of iterations
+} SolverContext;
+
 // TODO check which properties were never used
 typedef struct {
 	vec3	*xyz;		// X,Y,Z node coordinates (global)
@@ -108,6 +115,13 @@ typedef struct {
 		exagg_modal;	// exaggerate modal displ. in mesh data
 } InputScope;
 
+typedef struct {
+	double
+		**K,	// equilibrium stiffness matrix
+		*R,	// total reaction force vector
+		*D;	// displacement vector
+
+} ResultScope;
 
 /**
  * Set reactions to InputScope
