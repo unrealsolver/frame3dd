@@ -24,12 +24,12 @@ void Error_handle(Error *self) {
 	}
 }
 
-Error *IS_set_derived_reaction_data(InputScope *self, const uint_fast8_t *reactions) {
+Error *IS_init_reactions(InputScope *self) {
 	char errMsg[MAXL];
 	self->q = ivector(1, self->DoF);	/* allocate memory for reaction data ... */
 
 	// Calculate total number of restrained nodes
-	self->sumR=0;
+	self->sumR = 0;
 	for (uint8_t i = 1; i <= self->DoF; i++)
 		self->sumR += self->r[i];
 
@@ -55,5 +55,41 @@ Error *IS_set_derived_reaction_data(InputScope *self, const uint_fast8_t *reacti
 	for (uint8_t i = 1; i <= self->DoF; i++)
 		self->q[i] = self->r[i] == 0;
 
+	return NULL;
+};
+
+Error *IS_init_elements_length(InputScope *self) {
+	uint16_t i;
+	char errMsg[MAXL];
+
+	// Aliases
+	const vec3 *xyz = self->xyz;
+	const int *N1 = self->N1;
+	const int *N2 = self->N2;
+	const float *rj = self->rj;
+
+	for (i = 1; i <= self->nE; i++) {		/* calculate frame element lengths */
+		const int n1 = N1[i];
+		const int n2 = N2[i];
+#define SQ(X) ((X)*(X))
+		self->L[i] =	SQ( xyz[n2].x - xyz[n1].x ) +
+				SQ( xyz[n2].y - xyz[n1].y ) +
+				SQ( xyz[n2].z - xyz[n1].z );
+#undef SQ
+
+		self->L[i] = sqrt( self->L[i] );
+		self->Le[i] = self->L[i] - rj[n1] - rj[n2];
+		if ( n1 == n2 || self->L[i] == 0.0 ) {
+		   sprintf(errMsg,
+			" Frame elements must start and stop at different nodes\n  frame element %d  N1= %d N2= %d L= %e\n   Perhaps frame element number %d has not been specified.\n  or perhaps the Input Data file is missing expected data.\n",
+		   i, n1,n2, self->L[i], i);
+		   return Error_new(60, errMsg);
+		}
+		if ( self->Le[i] <= 0.0 ) {
+		   sprintf(errMsg, " Node  radii are too large.\n  frame element %d  N1= %d N2= %d L= %e \n  r1= %e r2= %e Le= %e \n",
+		   i, n1,n2, self->L[i], rj[n1], rj[n2], self->Le[i] );
+		   return Error_new(61, errMsg);
+		}
+	}
 	return NULL;
 };

@@ -556,32 +556,7 @@ void read_frame_element_data (
 		edge->profile->Iz = Iz[b];
 	}
 
-	for (b=1; b<=nE; b++) {		/* calculate frame element lengths */
-		const int n1 = N1[b];
-		const int n2 = N2[b];
-
-#define SQ(X) ((X)*(X))
-		scope->L[b] =	SQ( xyz[n2].x - xyz[n1].x ) +
-				SQ( xyz[n2].y - xyz[n1].y ) +
-				SQ( xyz[n2].z - xyz[n1].z );
-#undef SQ
-
-		scope->L[b] = sqrt( L[b] );
-		scope->Le[b] = L[b] - rj[n1] - rj[n2];
-		if ( n1 == n2 || L[b] == 0.0 ) {
-		   sprintf(errMsg,
-			" Frame elements must start and stop at different nodes\n  frame element %d  N1= %d N2= %d L= %e\n   Perhaps frame element number %d has not been specified.\n  or perhaps the Input Data file is missing expected data.\n",
-		   b, n1,n2, L[b], i );
-		   errorMsg(errMsg);
-		   exit(60);
-		}
-		if ( Le[b] <= 0.0 ) {
-		   sprintf(errMsg, " Node  radii are too large.\n  frame element %d  N1= %d N2= %d L= %e \n  r1= %e r2= %e Le= %e \n",
-		   b, n1,n2, L[b], rj[n1], rj[n2], Le[b] );
-		   errorMsg(errMsg);
-		   exit(61);
-		}
-	}
+	Error_handle(IS_init_elements_length(scope));
 
 	for (n=1; n<=nN; n++) {
 		if (epn[n] == 0) {
@@ -942,7 +917,7 @@ void read_reaction_data(
 	    }
 	}
 
-	Error_handle(IS_set_derived_reaction_data(scope, scope->r));
+	Error_handle(IS_init_reactions(scope));
 
 	return;
 }

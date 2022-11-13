@@ -123,11 +123,18 @@ typedef struct {
 } ResultScope;
 
 /**
- * Set reactions to InputScope
+ * Initialize derived reactions data (q, sumR)
  */
-Error *IS_set_reaction_data(
-	InputScope *self,
-	const uint_fast8_t *reactions
+Error *IS_init_reactions(
+	InputScope *self
+);
+
+/**
+ * Initialize L (length) and Le (effective length)
+ * of all frame elements
+ */
+Error *IS_init_elements_length(
+	InputScope *self
 );
 
 #endif /* COMPAT_TYPES_H */

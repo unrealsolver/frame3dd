@@ -287,7 +287,6 @@ For compilation/installation, see README.txt.
 		scope.shear, scope.anlyz, scope.geom, frame, load_cases
 	);
 
-
 	rs.K = dmatrix(1,DoF,1,DoF);	/* global stiffness matrix	*/
 	rs.Q = dmatrix(1,nE,1,12);	/* end forces for each member	*/
 	rs.D = dvector(1,DoF);	/* displacments of each node		*/
