@@ -24,6 +24,54 @@ void Error_handle(Error *self) {
 	}
 }
 
+void IS_set_nN(InputScope *self, const uint16_t nN) {
+	self->nN = nN;
+	self->DoF = nN * 6;
+	self->rj = vector(1, nN);	/* rigid radius around each node */
+	self->xyz = (vec3 *) calloc(nN + 1, sizeof(vec3)); /* node coordinates */
+}
+
+void IS_set_nE(InputScope *self, const uint16_t nE) {
+	self->nE  = nE;
+	self->L   = dvector(1,nE);	/* length of each element		*/
+	self->Le  = dvector(1,nE);	/* effective length of each element	*/
+
+	self->N1  = ivector(1,nE);	/* node #1 of each element		*/
+	self->N2  = ivector(1,nE);	/* node #2 of each element		*/
+
+	self->Ax  =  vector(1,nE);	/* cross section area of each element	*/
+	self->Asy =  vector(1,nE);	/* shear area in local y direction 	*/
+	self->Asz =  vector(1,nE);	/* shear area in local z direction	*/
+	self->Jx  =  vector(1,nE);	/* torsional moment of inertia 		*/
+	self->Iy  =  vector(1,nE);	/* bending moment of inertia about y-axis */
+	self->Iz  =  vector(1,nE);	/* bending moment of inertia about z-axis */
+
+	self->E   =  vector(1,nE);	/* frame element Young's modulus	*/
+	self->G   =  vector(1,nE);	/* frame element shear modulus		*/
+	self->p   =  vector(1,nE);	/* element rotation angle about local x axis */
+	self->d   =  vector(1,nE);	/* element mass density			*/
+}
+
+void IS_set_nL(InputScope *self, const uint8_t nL) {
+	const uint16_t nN  = self->nN;
+	const uint16_t nE  = self->nE;
+	const uint16_t DoF = self->DoF;
+
+	self->nL  = nL;
+	self->U   =  D3matrix(1,nL,1,nE,1,4);    /* uniform load on each member */
+	self->W   =  D3matrix(1,nL,1,10*nE,1,13);/* trapezoidal load on each member */
+	self->P   =  D3matrix(1,nL,1,10*nE,1,5); /* internal point load each member */
+	self->T   =  D3matrix(1,nL,1,nE,1,8);    /* internal temp change each member*/
+	self->Dp  =  matrix(1,nL,1,DoF); /* prescribed displacement of each node */
+
+	self->F_mech  = dmatrix(1,nL,1,DoF);	/* mechanical load vector	*/
+	self->F_temp  = dmatrix(1,nL,1,DoF);	/* temperature load vector	*/
+	self->F       = dvector(1,DoF);	/* external load vector	*/
+
+	self->eqF_mech =  D3dmatrix(1,nL,1,nE,1,12); /* eqF due to mech loads */
+	self->eqF_temp =  D3dmatrix(1,nL,1,nE,1,12); /* eqF due to temp loads */
+}
+
 Error *IS_init_reactions(InputScope *self) {
 	char errMsg[MAXL];
 	self->q = ivector(1, self->DoF);	/* allocate memory for reaction data ... */

@@ -181,7 +181,7 @@ For compilation/installation, see README.txt.
 	/* Start actually parsing file */
 	// Read nN
 	read_node_number(fp, &nN, verbose);
-	scope.nN = nN;
+	IS_set_nN(&scope, nN);
 	frame->nodes.size = nN;
 	// FIXME deallocte
 	frame->nodes.data = (Node *) calloc(nN, sizeof(Node));
@@ -190,14 +190,13 @@ For compilation/installation, see README.txt.
 	if ( verbose )	printf(" ... complete\n");
 
 	DoF = 6*nN;		/* total number of degrees of freedom	*/
-	scope.DoF = 6 * nN;
 
 	// TODO read to Frame
 	read_reaction_data (fp, verbose, frame, &scope);
 	if ( verbose )	fprintf(stdout," ... complete\n");
 
 	read_element_number(fp, &nE, verbose);
-	scope.nE = nE;
+	IS_set_nE(&scope, nE);
 
 	if ( nN > nE + 1) {	/* not enough elements */
 		fprintf(stderr,"\n  warning: %d nodes and %d members...", nN, nE );
@@ -216,7 +215,7 @@ For compilation/installation, see README.txt.
 	sfrv=fscanf(fp, "%d", &nL );	/* number of load cases		*/
 	load_cases->size = nL;
 	results->size = nL;
-	scope.nL = nL;
+	IS_set_nL(&scope, nL);
 
 	if (sfrv != 1)	sferr("nL value for number of load cases");
 	if ( verbose ) {	/* display nL */

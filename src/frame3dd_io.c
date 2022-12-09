@@ -373,10 +373,6 @@ void read_node_data(FILE *fp, Frame *frame, InputScope *scope)
 	char	errMsg[MAXL];
 	const int nN = scope->nN;
 
-					/* allocate memory for node data ... */
-	scope->rj = vector(1, nN);	/* rigid radius around each node */
-	scope->xyz = (vec3 *) calloc(nN + 1, sizeof(vec3)); /* node coordinates */
-
 	for (i=1; i <= nN; i++) {		/* read node coordinates	*/
 		Node *node = &frame->nodes.data[i - 1];
 		sfrv=fscanf(fp, "%d", &j );
@@ -427,24 +423,6 @@ void read_frame_element_data (
 	const int nN = scope->nN;
 	const int nE = scope->nE;
 
-					/* allocate memory for frame elements ... */
-	scope->L   = dvector(1,nE);	/* length of each element		*/
-	scope->Le  = dvector(1,nE);	/* effective length of each element	*/
-
-	scope->N1  = ivector(1,nE);	/* node #1 of each element		*/
-	scope->N2  = ivector(1,nE);	/* node #2 of each element		*/
-
-	scope->Ax  =  vector(1,nE);	/* cross section area of each element	*/
-	scope->Asy =  vector(1,nE);	/* shear area in local y direction 	*/
-	scope->Asz =  vector(1,nE);	/* shear area in local z direction	*/
-	scope->Jx  =  vector(1,nE);	/* torsional moment of inertia 		*/
-	scope->Iy  =  vector(1,nE);	/* bending moment of inertia about y-axis */
-	scope->Iz  =  vector(1,nE);	/* bending moment of inertia about z-axis */
-
-	scope->E   =  vector(1,nE);	/* frame element Young's modulus	*/
-	scope->G   =  vector(1,nE);	/* frame element shear modulus		*/
-	scope->p   =  vector(1,nE);	/* element rotation angle about local x axis */
-	scope->d   =  vector(1,nE);	/* element mass density			*/
 
 	epn = ivector(1,nN);
 
@@ -991,20 +969,6 @@ void read_and_assemble_loads (
 	int	sfrv=0;		/* *scanf return value */
 
 	char	errMsg[MAXL];
-
-	// Scope Initializations
-	scope->U   =  D3matrix(1,nL,1,nE,1,4);    /* uniform load on each member */
-	scope->W   =  D3matrix(1,nL,1,10*nE,1,13);/* trapezoidal load on each member */
-	scope->P   =  D3matrix(1,nL,1,10*nE,1,5); /* internal point load each member */
-	scope->T   =  D3matrix(1,nL,1,nE,1,8);    /* internal temp change each member*/
-	scope->Dp  =  matrix(1,nL,1,DoF); /* prescribed displacement of each node */
-
-	scope->F_mech  = dmatrix(1,nL,1,DoF);	/* mechanical load vector	*/
-	scope->F_temp  = dmatrix(1,nL,1,DoF);	/* temperature load vector	*/
-	scope->F       = dvector(1,DoF);	/* external load vector	*/
-
-	scope->eqF_mech =  D3dmatrix(1,nL,1,nE,1,12); /* eqF due to mech loads */
-	scope->eqF_temp =  D3dmatrix(1,nL,1,nE,1,12); /* eqF due to temp loads */
 
 	/* initialize load data vectors and matrices to zero */
 	for (j=1; j<=DoF; j++)	scope->F[j] = 0.0;

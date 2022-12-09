@@ -123,6 +123,21 @@ typedef struct {
 } ResultScope;
 
 /**
+ * Initialize number of nodes nN and derived data (rj, xyz)
+ */
+void IS_set_nN(InputScope *self, const uint16_t nN);
+
+/**
+ * Initialize number of elements nE and derived data
+ */
+void IS_set_nE(InputScope *self, const uint16_t nE);
+
+/**
+ * Initialize number of elements nE and derived data
+ */
+void IS_set_nL(InputScope *self, const uint8_t nL);
+
+/**
  * Initialize derived reactions data (q, sumR)
  */
 Error *IS_init_reactions(
