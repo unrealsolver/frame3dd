@@ -1,6 +1,7 @@
 #include "compat_types.h"
 #include "NRutil.h"
 #include "HPGutil.h"
+#include "coordtrans.h"
 #include <string.h>
 
 Error *Error_new(const uint8_t code, const char *message) {
@@ -23,6 +24,16 @@ void Error_handle(Error *self) {
 		exit(code);
 	}
 }
+
+
+void RS_init_for_IS(ResultScope *self, const InputScope *is) {
+	const uint16_t DoF = is->DoF;
+	const uint16_t nE = is->nE;
+	self->K = dmatrix(1,DoF,1,DoF);	/* global stiffness matrix	*/
+	self->Q = dmatrix(1,nE,1,12);	/* end forces for each member	*/
+	self->D = dvector(1,DoF);	/* displacments of each node	*/
+	self->R = dvector(1,DoF);	/* reaction forces		*/
+};
 
 void IS_set_nN(InputScope *self, const uint16_t nN) {
 	self->nN = nN;
@@ -70,6 +81,73 @@ void IS_set_nL(InputScope *self, const uint8_t nL) {
 
 	self->eqF_mech =  D3dmatrix(1,nL,1,nE,1,12); /* eqF due to mech loads */
 	self->eqF_temp =  D3dmatrix(1,nL,1,nE,1,12); /* eqF due to temp loads */
+
+	/* initialize load data vectors and matrices to zero */
+	for (uint16_t j=1; j<=DoF; j++)	self->F[j] = 0.0;
+	for (uint16_t j=1; j<=DoF; j++)
+		for (uint16_t lc=1; lc <= nL; lc++)
+			self->F_temp[lc][j] = self->F_mech[lc][j] = 0.0;
+	for (uint16_t i=1; i<=12; i++)
+		for (uint16_t n=1; n<=nE; n++)
+			for (uint16_t lc=1; lc <= nL; lc++)
+				self->eqF_mech[lc][n][i] = self->eqF_temp[lc][n][i] = 0.0;
+
+	for (uint16_t i=1; i<=DoF; i++)
+		for (uint16_t lc=1; lc<=nL; lc++)
+			self->Dp[lc][i] = 0.0;
+
+}
+
+void IS_init_eqF_mech(InputScope *self, const uint8_t lc) {
+	const float gX = self->gX[lc];
+	const float gY = self->gY[lc];
+	const float gZ = self->gZ[lc];
+	const double *L = self->L;
+	const float *p = self->p;
+	const float *d = self->d;
+
+	double t1, t2, t3, t4, t5, t6, t7, t8, t9;	/* 3D coord Xfrm coeffs */
+
+	for (uint16_t n = 1; n <= self->nE; n++) {
+		const float Ax = self->Ax[n];
+		const uint16_t n1 = self->N1[n];
+		const uint16_t n2 = self->N2[n];
+
+		coord_trans(self->xyz, L[n], n1, n2,
+			&t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, p[n]);
+
+		// CONSIDER REDEFINITIONS
+		self->eqF_mech[lc][n][1]  = d[n] * Ax * L[n] * gX / 2.0;
+		self->eqF_mech[lc][n][2]  = d[n] * Ax * L[n] * gY / 2.0;
+		self->eqF_mech[lc][n][3]  = d[n] * Ax * L[n] * gZ / 2.0;
+
+		self->eqF_mech[lc][n][4]  = d[n] * Ax * L[n]*L[n] / 12.0 *
+			( (-t4*t8+t5*t7)*gY + (-t4*t9+t6*t7)*gZ );
+		self->eqF_mech[lc][n][5]  = d[n] * Ax *L[n]*L[n] / 12.0 *
+			( (-t5*t7+t4*t8)*gX + (-t5*t9+t6*t8)*gZ );
+		self->eqF_mech[lc][n][6]  = d[n] * Ax *L[n]*L[n] / 12.0 *
+		   ( (-t6*t7+t4*t9)*gX + (-t6*t8+t5*t9)*gY );
+
+		self->eqF_mech[lc][n][7]  = d[n] * Ax * L[n] * gX / 2.0;
+		self->eqF_mech[lc][n][8]  = d[n] * Ax * L[n] * gY / 2.0;
+		self->eqF_mech[lc][n][9]  = d[n] * Ax * L[n] * gZ / 2.0;
+
+		self->eqF_mech[lc][n][10] = d[n] * Ax * L[n]*L[n] / 12.0 *
+		   ( ( t4*t8-t5*t7)*gY + ( t4*t9-t6*t7)*gZ );
+		self->eqF_mech[lc][n][11] = d[n] * Ax * L[n]*L[n] / 12.0 *
+		   ( ( t5*t7-t4*t8)*gX + ( t5*t9-t6*t8)*gZ );
+		self->eqF_mech[lc][n][12] = d[n] * Ax * L[n]*L[n] / 12.0 *
+			( ( t6*t7-t4*t9)*gX + ( t6*t8-t5*t9)*gY );
+
+		/* debugging ... check eqF data
+		printf("n=%d ", n);
+		for (l=1;l<=12;l++) {
+			if (eqF_mech[lc][n][l] != 0)
+			   printf(" eqF %d = %9.2e ", l, eqF_mech[lc][n][l] );
+		}
+		printf("\n");
+		*/
+	}					/* end gravity loads */
 }
 
 Error *IS_init_reactions(InputScope *self) {

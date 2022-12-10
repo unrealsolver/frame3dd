@@ -1,3 +1,8 @@
+/*
+ *
+*//** @file
+	Compatibility types
+ */
 #ifndef COMPAT_TYPES_H
 #define COMPAT_TYPES_H
 
@@ -123,6 +128,11 @@ typedef struct {
 } ResultScope;
 
 /**
+ * Result Scope initialize for given InputScope
+ */
+void RS_init_for_IS(ResultScope *self, const InputScope *is);
+
+/**
  * Initialize number of nodes nN and derived data (rj, xyz)
  */
 void IS_set_nN(InputScope *self, const uint16_t nN);
@@ -136,6 +146,12 @@ void IS_set_nE(InputScope *self, const uint16_t nE);
  * Initialize number of elements nE and derived data
  */
 void IS_set_nL(InputScope *self, const uint8_t nL);
+
+/**
+ * Initialize eqF_mech for given Load Case lc
+ * Requires gravity loads to be set for given lc
+ */
+void IS_init_eqF_mech(InputScope *self, const uint8_t lc);
 
 /**
  * Initialize derived reactions data (q, sumR)

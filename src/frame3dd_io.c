@@ -970,18 +970,6 @@ void read_and_assemble_loads (
 
 	char	errMsg[MAXL];
 
-	/* initialize load data vectors and matrices to zero */
-	for (j=1; j<=DoF; j++)	scope->F[j] = 0.0;
-	for (j=1; j<=DoF; j++)
-		for (lc=1; lc <= nL; lc++)
-			scope->F_temp[lc][j] = scope->F_mech[lc][j] = 0.0;
-	for (i=1; i<=12; i++)
-		for (n=1; n<=nE; n++)
-			for (lc=1; lc <= nL; lc++)
-				scope->eqF_mech[lc][n][i] = scope->eqF_temp[lc][n][i] = 0.0;
-
-	for (i=1; i<=DoF; i++)	for (lc=1; lc<=nL; lc++) scope->Dp[lc][i] = 0.0;
-
 	for (lc = 1; lc <= nL; lc++) {		/* begin load-case loop */
 
 	LoadCase *load_case = &load_cases->data[lc - 1];
@@ -1005,54 +993,7 @@ void read_and_assemble_loads (
 
 	if (sfrv != 3) sferr("gX gY gZ values in load data");
 
-	for (n=1; n<=nE; n++) {
-		const Material *material = frame->edges.data[n -1].material;
-		const Profile *profile = frame->edges.data[n -1].profile;
-		// NOTE: CAUTION: Redefinitions
-		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		const float Ax = profile->Ax;
-		const float gX = load_case->gravity.x;
-		const float gY = load_case->gravity.y;
-		const float gZ = load_case->gravity.z;
-
-		n1 = J1[n];
-		n2 = J2[n];
-
-		coord_trans ( scope->xyz, L[n], n1, n2,
-			&t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, p[n] );
-
-		// CONSIDER REDEFINITIONS
-		scope->eqF_mech[lc][n][1]  = d[n] * Ax * L[n] * gX / 2.0;
-		scope->eqF_mech[lc][n][2]  = d[n] * Ax * L[n] * gY / 2.0;
-		scope->eqF_mech[lc][n][3]  = d[n] * Ax * L[n] * gZ / 2.0;
-
-		scope->eqF_mech[lc][n][4]  = d[n] * Ax * L[n]*L[n] / 12.0 *
-			( (-t4*t8+t5*t7)*gY + (-t4*t9+t6*t7)*gZ );
-		scope->eqF_mech[lc][n][5]  = d[n] * Ax *L[n]*L[n] / 12.0 *
-			( (-t5*t7+t4*t8)*gX + (-t5*t9+t6*t8)*gZ );
-		scope->eqF_mech[lc][n][6]  = d[n] * Ax *L[n]*L[n] / 12.0 *
-			( (-t6*t7+t4*t9)*gX + (-t6*t8+t5*t9)*gY );
-
-		scope->eqF_mech[lc][n][7]  = d[n] * Ax * L[n] * gX / 2.0;
-		scope->eqF_mech[lc][n][8]  = d[n] * Ax * L[n] * gY / 2.0;
-		scope->eqF_mech[lc][n][9]  = d[n] * Ax * L[n] * gZ / 2.0;
-
-		scope->eqF_mech[lc][n][10] = d[n] * Ax * L[n]*L[n] / 12.0 *
-			( ( t4*t8-t5*t7)*gY + ( t4*t9-t6*t7)*gZ );
-		scope->eqF_mech[lc][n][11] = d[n] * Ax * L[n]*L[n] / 12.0 *
-			( ( t5*t7-t4*t8)*gX + ( t5*t9-t6*t8)*gZ );
-		scope->eqF_mech[lc][n][12] = d[n] * Ax * L[n]*L[n] / 12.0 *
-			( ( t6*t7-t4*t9)*gX + ( t6*t8-t5*t9)*gY );
-
-		/* debugging ... check eqF data
-		printf("n=%d ", n);
-		for (l=1;l<=12;l++) {
-			if (eqF_mech[lc][n][l] != 0)
-			   printf(" eqF %d = %9.2e ", l, eqF_mech[lc][n][l] );
-		}
-		printf("\n");
-		*/
-	}					/* end gravity loads */
+	IS_init_eqF_mech(scope, lc);
 
 	/* node point loads -------------------------------------------- */
 	sfrv=fscanf(fp,"%d", &scope->nF[lc] );
@@ -1062,7 +1003,6 @@ void read_and_assemble_loads (
 		dots(stdout,28);
 		fprintf(stdout," nF = %3d\n", nF[lc]);
 	}
-
 
 	load_case->loads.point.size = nF[lc];
 	load_case->loads.point.data = (PointLoad *) calloc(nF[lc], sizeof(PointLoad));

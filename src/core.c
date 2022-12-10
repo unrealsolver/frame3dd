@@ -7,7 +7,7 @@
  * Run simulation for given load case
  */
 uint8_t solve(
-	const InputScope scope, const RuntimeArgs args, Results *results,
+	const InputScope scope, const RuntimeArgs args,
 	SolverContext ctx, ResultScope rs, const int lc
 ) {
 	// Iterators

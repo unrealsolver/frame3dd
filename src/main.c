@@ -286,16 +286,13 @@ For compilation/installation, see README.txt.
 		scope.shear, scope.anlyz, scope.geom, frame, load_cases
 	);
 
-	rs.K = dmatrix(1,DoF,1,DoF);	/* global stiffness matrix	*/
-	rs.Q = dmatrix(1,nE,1,12);	/* end forces for each member	*/
-	rs.D = dvector(1,DoF);	/* displacments of each node		*/
-	rs.R = dvector(1,DoF);	/* reaction forces			*/
+	RS_init_for_IS(&rs, &scope);
 
 	if ( scope.anlyz ) {			/* solve the problem	*/
 		srand(time(NULL));
 		for (lc=1; lc <= nL; lc++) {	/* begin load case analysis loop */
 			LoadCaseResult *lc_result = &results->data[lc - 1];
-			ExitCode = solve(scope, args, results, ctx, rs, lc);
+			ExitCode = solve(scope, args, ctx, rs, lc);
 
 			write_static_struct(lc_result, frame, rs.D, rs.Q);
 
