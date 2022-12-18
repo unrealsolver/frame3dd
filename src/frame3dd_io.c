@@ -1500,13 +1500,7 @@ void read_and_assemble_loads (
 
 	  // assemble all element equivalent loads into
 	  // separate load vectors for mechanical and thermal loading
-	  for (n=1; n<=nE; n++) {
-	     n1 = J1[n];	n2 = J2[n];
-	     for (i=1; i<= 6; i++) scope->F_mech[lc][6*n1- 6+i] += scope->eqF_mech[lc][n][i];
-	     for (i=7; i<=12; i++) scope->F_mech[lc][6*n2-12+i] += scope->eqF_mech[lc][n][i];
-	     for (i=1; i<= 6; i++) scope->F_temp[lc][6*n1- 6+i] += scope->eqF_temp[lc][n][i];
-	     for (i=7; i<=12; i++) scope->F_temp[lc][6*n2-12+i] += scope->eqF_temp[lc][n][i];
-	  }
+	  IS_assemble_eq_loads(scope, lc);
 
 	  /* prescribed displacements ------------------------------------ */
 	  sfrv=fscanf(fp,"%d", &scope->nD[lc] );

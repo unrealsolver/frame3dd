@@ -154,6 +154,12 @@ void IS_set_nL(InputScope *self, const uint8_t nL);
 void IS_init_eqF_mech(InputScope *self, const uint8_t lc);
 
 /**
+ * assemble all element equivalent loads into
+ * separate load vectors for mechanical and thermal loading
+ */
+void IS_assemble_eq_loads(InputScope *self, uint8_t lc);
+
+/**
  * Initialize derived reactions data (q, sumR)
  */
 Error *IS_init_reactions(

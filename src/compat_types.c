@@ -150,6 +150,23 @@ void IS_init_eqF_mech(InputScope *self, const uint8_t lc) {
 	}					/* end gravity loads */
 }
 
+/**
+ * assemble all element equivalent loads into
+ * separate load vectors for mechanical and thermal loading
+ */
+void IS_assemble_eq_loads(InputScope *self, uint8_t lc) {
+	const uint16_t nE  = self->nE;
+	for (uint16_t n = 1; n <= nE; n++) {
+		uint16_t n1 = self->N1[n];
+		uint16_t n2 = self->N2[n];
+		uint8_t i;
+		for (i = 1; i <= 6;  i++) self->F_mech[lc][6*n1- 6+i] += self->eqF_mech[lc][n][i];
+		for (i = 7; i <= 12; i++) self->F_mech[lc][6*n2-12+i] += self->eqF_mech[lc][n][i];
+		for (i = 1; i <= 6;  i++) self->F_temp[lc][6*n1- 6+i] += self->eqF_temp[lc][n][i];
+		for (i = 7; i <= 12; i++) self->F_temp[lc][6*n2-12+i] += self->eqF_temp[lc][n][i];
+	}
+}
+
 Error *IS_init_reactions(InputScope *self) {
 	char errMsg[MAXL];
 	self->q = ivector(1, self->DoF);	/* allocate memory for reaction data ... */
