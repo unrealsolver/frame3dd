@@ -825,8 +825,6 @@ void read_reaction_data(
 	const int DoF = scope->DoF;
 	const int nN = scope->nN;
 
-	scope->r = ivector(1, DoF);	/* allocate memory for reaction data ... */
-
 	for (i=1; i<=DoF; i++)
 		scope->r[i] = 0;
 

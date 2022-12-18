@@ -40,6 +40,7 @@ void IS_set_nN(InputScope *self, const uint16_t nN) {
 	self->DoF = nN * 6;
 	self->rj = vector(1, nN);	/* rigid radius around each node */
 	self->xyz = (vec3 *) calloc(nN + 1, sizeof(vec3)); /* node coordinates */
+	self->r = ivector(1, self->DoF);	/* allocate memory for reaction data ... */
 }
 
 void IS_set_nE(InputScope *self, const uint16_t nE) {
