@@ -40,7 +40,13 @@ void IS_set_nN(InputScope *self, const uint16_t nN) {
 	self->DoF = nN * 6;
 	self->rj = vector(1, nN);	/* rigid radius around each node */
 	self->xyz = (vec3 *) calloc(nN + 1, sizeof(vec3)); /* node coordinates */
-	self->r = ivector(1, self->DoF);	/* allocate memory for reaction data ... */
+	self->r = ivector(1, self->DoF);/* allocate memory for reaction data ... */
+	self->c = ivector(1, self->DoF);/* vector of condensed degrees of freedom */
+	self->m = ivector(1, self->DoF);/* vector of condensed mode numbers	*/
+	self->NMs =  vector(1, nN);	/* node mass for each node		*/
+	self->NMx =  vector(1, nN);	/* node inertia about global X axis	*/
+	self->NMy =  vector(1, nN);	/* node inertia about global Y axis	*/
+	self->NMz =  vector(1, nN);	/* node inertia about global Z axis	*/
 }
 
 void IS_set_nE(InputScope *self, const uint16_t nE) {
@@ -62,6 +68,8 @@ void IS_set_nE(InputScope *self, const uint16_t nE) {
 	self->G   =  vector(1,nE);	/* frame element shear modulus		*/
 	self->p   =  vector(1,nE);	/* element rotation angle about local x axis */
 	self->d   =  vector(1,nE);	/* element mass density			*/
+
+	self->EMs =  vector(1, nE);	/* lumped mass for each frame element	*/
 }
 
 void IS_set_nL(InputScope *self, const uint8_t nL) {

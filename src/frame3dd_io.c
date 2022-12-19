@@ -1548,11 +1548,6 @@ void read_mass_data (
 	char	errMsg[MAXL];
 
 	// Initializations
-	scope->EMs =  vector(1,nE);	/* lumped mass for each frame element	*/
-	scope->NMs =  vector(1,nN);	/* node mass for each node		*/
-	scope->NMx =  vector(1,nN);	/* node inertia about global X axis	*/
-	scope->NMy =  vector(1,nN);	/* node inertia about global Y axis	*/
-	scope->NMz =  vector(1,nN);	/* node inertia about global Z axis	*/
 	scope->lump = 1;
 	scope->exagg_modal = 10;
 	scope->tol = 1.0e-9;
@@ -1751,9 +1746,6 @@ void read_condensation_data (
 	const int DoF = scope->DoF;
 
 	scope->Cmethod = scope->nC = scope->Cdof = 0;
-
-	scope->c = ivector(1, DoF); 	/* vector of condensed degrees of freedom */
-	scope->m = ivector(1, DoF); 	/* vector of condensed mode numbers	*/
 
 	if ( (sfrv=fscanf ( fp, "%d", &scope->Cmethod )) != 1 )   {
 		scope->Cmethod = scope->nC = scope->Cdof = 0;
