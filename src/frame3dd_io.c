@@ -822,6 +822,7 @@ void read_reaction_data(
 	int	i,j,l;
 	int	sfrv=0;		/* *scanf return value */
 	char	errMsg[MAXL];
+	int32_t nR;
 	const int DoF = scope->DoF;
 	const int nN = scope->nN;
 
@@ -831,23 +832,15 @@ void read_reaction_data(
 	// alias
 	const int *r = scope->r;
 
-	sfrv=fscanf(fp,"%d", &scope->nR);	/* read restrained degrees of freedom */
-	// alias
-	const int nR = scope->nR;
+	sfrv=fscanf(fp,"%d", &nR);	/* read restrained degrees of freedom */
 	if (sfrv != 1) sferr("number of reactions in reaction data");
 	if ( verbose ) {
 		fprintf(stdout," number of nodes with reactions ");
 		dots(stdout,21);
 		fprintf(stdout," nR =%4d ", nR);
 	}
-	if (nR < 0 || nR > nN) {
-		fprintf(stderr," number of nodes with reactions ");
-		dots(stderr,21);
-		fprintf(stderr," nR = %3d ", nR);
-		sprintf(errMsg,"\n  error: valid ranges for nR is 0 ... %d \n", DoF/6 );
-		errorMsg(errMsg);
-		exit(80);
-	}
+
+	Error_handle(IS_set_nR(scope, nR));
 
 	for (i=1; i <= nR; i++) {
 	    sfrv=fscanf(fp,"%d", &j);
@@ -3422,15 +3415,6 @@ int get_file_ext( char *filename, char *ext )
 	if ( !strcmp(ext,".csv") ) return (1);
 	if ( !strcmp(ext,".fmm") ) return (2);
 	return(0);
-}
-
-
-/*
- * DOTS  -  print a set of dots (periods)
- */
-void dots ( FILE *fp, int n ) {
-	int i;
-	for (i=1; i<=n; i++) fprintf(fp, ".");
 }
 
 

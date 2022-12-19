@@ -96,7 +96,6 @@ void IS_set_nL(InputScope *self, const uint8_t nL) {
 	for (uint16_t i=1; i<=DoF; i++)
 		for (uint16_t lc=1; lc<=nL; lc++)
 			self->Dp[lc][i] = 0.0;
-
 }
 
 void IS_init_eqF_mech(InputScope *self, const uint8_t lc) {
@@ -166,6 +165,19 @@ void IS_assemble_eq_loads(InputScope *self, uint8_t lc) {
 		for (i = 1; i <= 6;  i++) self->F_temp[lc][6*n1- 6+i] += self->eqF_temp[lc][n][i];
 		for (i = 7; i <= 12; i++) self->F_temp[lc][6*n2-12+i] += self->eqF_temp[lc][n][i];
 	}
+}
+
+Error *IS_set_nR(InputScope *self, int32_t nR) {
+	char errMsg[MAXL];
+	if (nR < 0 || nR > self->nN) {
+		fprintf(stderr, " number of nodes with reactions ");
+		dots(stderr, 21);
+		fprintf(stderr, " nR = %3d ", nR);
+		sprintf(errMsg, "\n  error: valid ranges for nR is 0 ... %d \n", self->nN);
+		return Error_new(85, errMsg);
+	}
+	self->nR = nR;
+	return NULL;
 }
 
 Error *IS_init_reactions(InputScope *self) {

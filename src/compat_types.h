@@ -148,6 +148,11 @@ void IS_set_nE(InputScope *self, const uint16_t nE);
 void IS_set_nL(InputScope *self, const uint8_t nL);
 
 /**
+ * Initialize restrained nodes count nR
+ */
+Error *IS_set_nR(InputScope *self, int32_t nR);
+
+/**
  * Initialize eqF_mech for given Load Case lc
  * Requires gravity loads to be set for given lc
  */
